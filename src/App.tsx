@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { PenLine } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -12,7 +12,7 @@ import EventDetail from './pages/EventDetail'
 import UserDetail from './pages/UserDetail'
 import MessageDetail from './pages/MessageDetail'
 import CreateMessage from './pages/CreateMessage'
-import UsersMap from './pages/UsersMap'
+import Diagnostica from './pages/Diagnostica'
 import Login from './pages/Login'
 import { useAuth } from './hooks/useAuth'
 import { ShieldX } from 'lucide-react'
@@ -85,7 +85,9 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard isAdmin={isAdmin} userId={userId} />} />
               {isAdmin && <Route path="/users" element={<Users />} />}
-              {isAdmin && <Route path="/users-map" element={<UsersMap />} />}
+              {/* La mappa ora e' una scheda di Utenti: il vecchio indirizzo ci porta. */}
+              {isAdmin && <Route path="/users-map" element={<Navigate to="/users?vista=mappa" replace />} />}
+              {isAdmin && <Route path="/diagnostica" element={<Diagnostica />} />}
               <Route path="/users/:id" element={<UserDetail />} />
               <Route path="/messages" element={<Messages isAdmin={isAdmin} userId={userId} />} />
               <Route path="/messages/new" element={<CreateMessage />} />

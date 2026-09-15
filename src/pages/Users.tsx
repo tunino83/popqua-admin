@@ -7,8 +7,9 @@ import {
   flexRender,
   createColumnHelper,
 } from '@tanstack/react-table'
-import { Ban, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Ban, ChevronLeft, ChevronRight, Search, List, MapPinned } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import UsersMap from './UsersMap'
 import { supabase } from '../lib/supabase'
 
 interface Profile {
@@ -29,7 +30,38 @@ const roleBadge = (role: string | null) => {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
+/* Elenco e mappa degli utenti nella stessa pagina, a schede. La scheda sta
+   nell'indirizzo (?vista=mappa), cosi' si puo' linkare e il tasto indietro
+   la rispetta. La mappa si monta solo quando la si apre: Leaflet in un
+   contenitore nascosto calcola male le dimensioni. */
 export default function Users() {
+  const [params, setParams] = useSearchParams()
+  const vista = params.get('vista') === 'mappa' ? 'mappa' : 'elenco'
+
+  const schede = [
+    { id: 'elenco', label: 'Elenco', icon: List },
+    { id: 'mappa',  label: 'Mappa',  icon: MapPinned },
+  ] as const
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800">
+        {schede.map(({ id, label, icon: Icon }) => (
+          <button key={id}
+            onClick={() => setParams(id === 'mappa' ? { vista: 'mappa' } : {})}
+            className={`flex items-center gap-2 px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${vista === id
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}>
+            <Icon className="w-4 h-4" /> {label}
+          </button>
+        ))}
+      </div>
+      {vista === 'mappa' ? <UsersMap /> : <ElencoUtenti />}
+    </div>
+  )
+}
+
+function ElencoUtenti() {
   const navigate = useNavigate()
   const [data, setData]           = useState<Profile[]>([])
   const [loading, setLoading]     = useState(true)

@@ -185,7 +185,6 @@ export default function UsersMap() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mappa utenti</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Zone da 500 m con le persone che hanno aperto l'app negli ultimi 14 giorni. Clicca una zona o un punto per lasciare un messaggio.
           </p>
@@ -209,7 +208,7 @@ export default function UsersMap() {
 
       <div className="grid grid-cols-3 gap-4 items-start">
         <div className="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-          <div ref={mapRef} className="cursor-crosshair" style={{ height: 'calc(100vh - 220px)', minHeight: 420 }} />
+          <div ref={mapRef} className="cursor-crosshair" style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5 space-y-4">
