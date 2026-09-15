@@ -112,20 +112,37 @@ export default function UsersMap() {
       const intensita = 0.25 + 0.55 * (z.utenti / massimo)
       const riquadro = L.rectangle(
         [[z.lat - dLat, z.lon - dLon], [z.lat + dLat, z.lon + dLon]],
-        { color: '#0079AC', weight: 1, fillColor: '#0FB8FC', fillOpacity: intensita },
+        { color: '#0079AC', weight: 2, fillColor: '#0FB8FC', fillOpacity: intensita },
       )
-      riquadro.bindTooltip(
-        `<b>${z.utenti} ${z.utenti === 1 ? 'persona' : 'persone'}</b><br>ultimo aggiornamento ${tempoFa(z.aggiornato)}`,
-        { direction: 'top' },
-      )
+
+      /* Il riquadro e' largo 500 m veri: a zoom basso diventava piu' piccolo
+         di un pixel e la zona spariva. Il segnaposto ha invece una misura
+         fissa sullo schermo, con il numero di persone, e si vede a ogni
+         zoom; il riquadro resta per mostrare l'area quando si ingrandisce. */
+      const lato = Math.round(30 + 14 * (z.utenti / massimo))
+      const segnaposto = L.marker([z.lat, z.lon], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="width:${lato}px;height:${lato}px;border-radius:50%;background:#0079AC;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font:700 ${lato > 36 ? 15 : 13}px system-ui,sans-serif">${z.utenti}</div>`,
+          iconSize: [lato, lato],
+          iconAnchor: [lato / 2, lato / 2],
+        }),
+        riseOnHover: true,
+      })
+
+      const suggerimento = `<b>${z.utenti} ${z.utenti === 1 ? 'persona' : 'persone'}</b><br>ultimo aggiornamento ${tempoFa(z.aggiornato)}`
       /* Il clic sulla zona apre il modulo al suo centro: e' il caso d'uso
          principale, mettere un messaggio dove c'e' gente. */
-      riquadro.on('click', (e: L.LeafletMouseEvent) => {
+      const apri = (e: L.LeafletMouseEvent) => {
         L.DomEvent.stopPropagation(e)
         setPunto({ lat: z.lat, lon: z.lon })
         setEsito(null)
-      })
-      riquadro.addTo(livello)
+      }
+      for (const forma of [riquadro, segnaposto]) {
+        forma.bindTooltip(suggerimento, { direction: 'top' })
+        forma.on('click', apri)
+        forma.addTo(livello)
+      }
       limiti.push([z.lat, z.lon])
     }
 
