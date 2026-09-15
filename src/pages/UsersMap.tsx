@@ -37,6 +37,22 @@ function tempoFa(iso: string): string {
   return `${Math.round(ore / 24)} giorni fa`
 }
 
+/* Cerchio di misura fissa con il numero di persone: si vede a ogni zoom,
+   mentre il riquadro da 500 m a zoom basso diventa piu' piccolo di un pixel. */
+function iconaNumero(n: number, massimo: number) {
+  const lato = Math.round(30 + 14 * Math.min(1, n / Math.max(1, massimo)))
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${lato}px;height:${lato}px;border-radius:50%;background:#0079AC;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font:700 ${lato > 36 ? 15 : 13}px system-ui,sans-serif">${n}</div>`,
+    iconSize: [lato, lato],
+    iconAnchor: [lato / 2, lato / 2],
+  })
+}
+
+function suggerimentoZona(utenti: number, aggiornato: string) {
+  return `<b>${utenti} ${utenti === 1 ? 'persona' : 'persone'}</b><br>ultimo aggiornamento ${tempoFa(aggiornato)}`
+}
+
 export default function UsersMap() {
   const mapRef      = useRef<HTMLDivElement>(null)
   const mappa       = useRef<L.Map | null>(null)
@@ -96,12 +112,14 @@ export default function UsersMap() {
     return () => { m.remove(); mappa.current = null }
   }, [])
 
-  // Zone disegnate come riquadri, piu' intensi dove ci sono piu' persone
+  // Zone: riquadro da 500 m per l'area vera, segnaposto con il numero per
+  // trovarle a ogni zoom
   useEffect(() => {
     const m = mappa.current, livello = livelloZone.current
     if (!m || !livello) return
     livello.clearLayers()
     if (zone.length === 0) return
+    let annullato = false
 
     const massimo = Math.max(...zone.map(z => z.utenti))
     const limiti: L.LatLngTuple[] = []
@@ -114,40 +132,62 @@ export default function UsersMap() {
         [[z.lat - dLat, z.lon - dLon], [z.lat + dLat, z.lon + dLon]],
         { color: '#0079AC', weight: 2, fillColor: '#0FB8FC', fillOpacity: intensita },
       )
-
-      /* Il riquadro e' largo 500 m veri: a zoom basso diventava piu' piccolo
-         di un pixel e la zona spariva. Il segnaposto ha invece una misura
-         fissa sullo schermo, con il numero di persone, e si vede a ogni
-         zoom; il riquadro resta per mostrare l'area quando si ingrandisce. */
-      const lato = Math.round(30 + 14 * (z.utenti / massimo))
-      const segnaposto = L.marker([z.lat, z.lon], {
-        icon: L.divIcon({
-          className: '',
-          html: `<div style="width:${lato}px;height:${lato}px;border-radius:50%;background:#0079AC;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font:700 ${lato > 36 ? 15 : 13}px system-ui,sans-serif">${z.utenti}</div>`,
-          iconSize: [lato, lato],
-          iconAnchor: [lato / 2, lato / 2],
-        }),
-        riseOnHover: true,
-      })
-
-      const suggerimento = `<b>${z.utenti} ${z.utenti === 1 ? 'persona' : 'persone'}</b><br>ultimo aggiornamento ${tempoFa(z.aggiornato)}`
-      /* Il clic sulla zona apre il modulo al suo centro: e' il caso d'uso
-         principale, mettere un messaggio dove c'e' gente. */
-      const apri = (e: L.LeafletMouseEvent) => {
-        L.DomEvent.stopPropagation(e)
-        setPunto({ lat: z.lat, lon: z.lon })
-        setEsito(null)
-      }
-      for (const forma of [riquadro, segnaposto]) {
-        forma.bindTooltip(suggerimento, { direction: 'top' })
-        forma.on('click', apri)
-        forma.addTo(livello)
-      }
+      riquadro.bindTooltip(suggerimentoZona(z.utenti, z.aggiornato), { direction: 'top' })
+      riquadro.on('click', (e: L.LeafletMouseEvent) => apriZona(e, z))
+      riquadro.addTo(livello)
       limiti.push([z.lat, z.lon])
     }
 
     if (limiti.length > 0) m.fitBounds(L.latLngBounds(limiti).pad(0.3), { maxZoom: 15 })
+
+    /* Segnaposti raggruppati. Due zone vicine, a zoom basso, finivano una
+       sopra l'altra: "4 in 4 zone" e tre cerchi visibili. Il gruppo le
+       unisce in un solo cerchio con la SOMMA delle persone, e si divide
+       ingrandendo. Stesso caricamento di leaflet.markercluster usato nella
+       Dashboard: il plugin si aggancia al L globale. */
+    ;(async () => {
+      ;(window as any).L = L
+      await import('leaflet.markercluster')
+      if (annullato) return
+
+      const gruppo = (L as any).markerClusterGroup({
+        maxClusterRadius: 45,
+        showCoverageOnHover: false,
+        // Zone con lo stesso centro non si separano ingrandendo: a zoom
+        // massimo si aprono a raggiera.
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: (cluster: any) => {
+          const figli = cluster.getAllChildMarkers() as L.Marker[]
+          const somma = figli.reduce((t, mk) => t + ((mk.options as any).utenti ?? 0), 0)
+          return iconaNumero(somma, massimo * 2)
+        },
+      })
+      gruppo.on('clustermouseover', (e: any) => {
+        const figli = e.layer.getAllChildMarkers() as L.Marker[]
+        const somma = figli.reduce((t, mk) => t + ((mk.options as any).utenti ?? 0), 0)
+        e.layer.bindTooltip(`<b>${somma} ${somma === 1 ? 'persona' : 'persone'}</b> in ${figli.length} zone<br>clicca per ingrandire`, { direction: 'top' }).openTooltip()
+      })
+
+      for (const z of zone) {
+        const mk = L.marker([z.lat, z.lon], { icon: iconaNumero(z.utenti, massimo), riseOnHover: true, utenti: z.utenti } as any)
+        mk.bindTooltip(suggerimentoZona(z.utenti, z.aggiornato), { direction: 'top' })
+        mk.on('click', (e: L.LeafletMouseEvent) => apriZona(e, z))
+        gruppo.addLayer(mk)
+      }
+      livello.addLayer(gruppo)
+    })()
+
+    return () => { annullato = true }
   }, [zone])
+
+  /* Il clic sulla zona apre il modulo al suo centro: e' il caso d'uso
+     principale, mettere un messaggio dove c'e' gente. */
+  function apriZona(e: L.LeafletMouseEvent, z: Zona) {
+    L.DomEvent.stopPropagation(e)
+    setPunto({ lat: z.lat, lon: z.lon })
+    setEsito(null)
+  }
 
   // Segnaposto e cerchio del raggio del messaggio in preparazione
   useEffect(() => {
