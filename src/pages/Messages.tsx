@@ -11,6 +11,7 @@ import { Trash2, ChevronLeft, ChevronRight, List, Map as MapIcon, Image, Plus } 
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { supabase } from '../lib/supabase'
 import { esc, safeUrl } from '../lib/escapeHtml'
 
@@ -84,9 +85,6 @@ const typeBadge: Record<string, string> = {
 }
 const typeLabel: Record<string, string> = { message: 'Messaggio', event: 'Evento', offer: 'Offerta' }
 
-const CARTO_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const CARTO_DARK  = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
 
 function hexToDouble(hex: string): number {
   const buf = new Uint8Array(8)
@@ -166,7 +164,6 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     return () => { delete (window as any).__navigateTo }
   }, [navigate])
 
-  function isDark() { return document.documentElement.classList.contains('dark') }
 
   function createAvatarIcon(avatarUrl: string | null, username: string): L.DivIcon {
     const initial = esc((username?.[0] ?? '?').toUpperCase())
@@ -210,9 +207,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     if (!mapInstanceRef.current) {
       const map = L.map(el).setView([41.9, 12.5], 6)
       mapInstanceRef.current = map
-      const tile = L.tileLayer(isDark() ? CARTO_DARK : CARTO_LIGHT, {
-        attribution: CARTO_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19,
-      })
+      const tile = L.tileLayer(OSM_TILES, OSM_OPTIONS)
       tile.addTo(map)
       tileLayerRef.current = tile
 
@@ -233,17 +228,6 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
         map.addLayer(mcg)
       })()
 
-      const observer = new MutationObserver(() => {
-        if (!tileLayerRef.current || !mapInstanceRef.current) return
-        tileLayerRef.current.remove()
-        const newTile = L.tileLayer(isDark() ? CARTO_DARK : CARTO_LIGHT, {
-          attribution: CARTO_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19,
-        })
-        newTile.addTo(mapInstanceRef.current)
-        tileLayerRef.current = newTile
-      })
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-      return () => observer.disconnect()
     } else {
       if (clusterRef.current) {
         clusterRef.current.clearLayers()

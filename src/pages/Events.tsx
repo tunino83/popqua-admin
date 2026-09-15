@@ -5,6 +5,7 @@ import { getAllEvents, type AdminEvent } from '../lib/events'
 import { esc } from '../lib/escapeHtml'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   draft:     { label: 'Bozza',      cls: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300' },
@@ -19,8 +20,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   Food: '🍽️', Festival: '🎉', Arte: '🎨', Sport: '⚽',
   Natura: '🌿', Religioso: '⛪', Tradizione: '🏮', Mercato: '🛍️',
 }
-const CARTO_TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 // Colore cluster per stato evento
 function eventStatusColor(ev: AdminEvent): { color: string; key: 'active' | 'upcoming' | 'other' } {
@@ -85,7 +84,7 @@ export default function Events() {
   useEffect(() => {
     if (!mapDivRef.current || mapRef.current) return
     const map = L.map(mapDivRef.current, { center: [40.85, 14.27], zoom: 8 })
-    L.tileLayer(CARTO_TILE, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(map)
     mapRef.current = map
     setTimeout(() => map.invalidateSize(), 100)
     ;(async () => {

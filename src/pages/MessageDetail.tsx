@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Clock, User, CalendarDays, MessageSquare, Image as I
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 
 interface MsgDetail {
   id: string
@@ -22,11 +23,6 @@ interface MsgDetail {
   place_id: string | null
 }
 
-const CARTO_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const CARTO_DARK  = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const CARTO_ATTR  = '&copy; OpenStreetMap &copy; CARTO'
-
-function isDark() { return document.documentElement.classList.contains('dark') }
 
 function parseWKB(loc: any): { lat: number; lng: number } | null {
   if (!loc) return null
@@ -88,7 +84,7 @@ export default function MessageDetail() {
 
     const map = L.map(mapRef.current).setView([coords.lat, coords.lng], 14)
     mapInstanceRef.current = map
-    L.tileLayer(isDark() ? CARTO_DARK : CARTO_LIGHT, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(map)
     L.circleMarker([coords.lat, coords.lng], { radius: 10, color: '#4f46e5', fillColor: '#4f46e5', fillOpacity: 0.6, weight: 2 }).addTo(map)
     setTimeout(() => map.invalidateSize(), 50)
 

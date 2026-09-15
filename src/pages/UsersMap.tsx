@@ -3,6 +3,7 @@ import { Send, X, RefreshCw, Users as UsersIcon } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 
 /* Dove sono le persone con l'app, e un modo per lasciare messaggi li'.
  *
@@ -10,9 +11,6 @@ import { supabase } from '../lib/supabase'
  * persone ci sono. E' tutto quello che serve per decidere dove mettere un
  * contenuto, e il server non restituisce altro (admin_zone_utenti). */
 
-const CARTO_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const CARTO_DARK  = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const CARTO_ATTR  = '&copy; OpenStreetMap &copy; CARTO'
 
 /* Meta' lato della cella del server: il riquadro disegnato copre la zona
    intera, non un punto che farebbe credere a una posizione precisa. */
@@ -30,8 +28,6 @@ const SCADENZE = [
 ]
 
 interface Zona { lat: number; lon: number; utenti: number; aggiornato: string }
-
-function isDark() { return document.documentElement.classList.contains('dark') }
 
 function tempoFa(iso: string): string {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
@@ -87,7 +83,7 @@ export default function UsersMap() {
     if (!mapRef.current || mappa.current) return
     const m = L.map(mapRef.current).setView([40.85, 14.27], 9)
     mappa.current = m
-    L.tileLayer(isDark() ? CARTO_DARK : CARTO_LIGHT, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(m)
+    L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(m)
     livelloZone.current = L.layerGroup().addTo(m)
 
     m.on('click', (e: L.LeafletMouseEvent) => {

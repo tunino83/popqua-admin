@@ -4,12 +4,10 @@ import { ArrowLeft, Send, Upload, X } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 
 type MessageType = 'message' | 'event' | 'offer'
 
-const CARTO_LIGHT = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const CARTO_DARK  = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const CARTO_ATTR  = '&copy; OpenStreetMap &copy; CARTO'
 
 const EXPIRY_OPTIONS = [
   { value: 15,    label: '15 min' },
@@ -29,7 +27,6 @@ const DELAY_OPTIONS = [
   { value: 600, label: '10 min' },
 ]
 
-function isDark() { return document.documentElement.classList.contains('dark') }
 
 async function compressImage(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -108,7 +105,7 @@ export default function CreateMessage() {
     if (!mapRef.current || mapInstanceRef.current) return
     const map = L.map(mapRef.current).setView([41.9, 12.5], 6)
     mapInstanceRef.current = map
-    L.tileLayer(isDark() ? CARTO_DARK : CARTO_LIGHT, { attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map)
+    L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(map)
 
     navigator.geolocation?.getCurrentPosition(({ coords }) => {
       const { latitude: la, longitude: lo } = coords

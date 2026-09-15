@@ -11,6 +11,7 @@ import {
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
+import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { getAllEvents } from '../lib/events'
 import { esc } from '../lib/escapeHtml'
 
@@ -117,10 +118,7 @@ function OverviewMap(_: { isAdmin: boolean }) {
   useEffect(() => {
     if (!mapDivRef.current || mapRef.current) return
     const map = L.map(mapDivRef.current, { center: [40.85, 14.27], zoom: 8 })
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd', maxZoom: 19,
-    }).addTo(map)
+    L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(map)
     mapRef.current = map
     setTimeout(() => map.invalidateSize(), 150)
 
