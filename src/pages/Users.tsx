@@ -18,6 +18,9 @@ interface Profile {
   role: string | null
   avatar_url: string | null
   created_at: string
+  /* Non sta in user_profiles: vive in auth.users e arriva a parte, dalla
+     funzione admin_email_utenti. */
+  email?: string | null
 }
 
 const columnHelper = createColumnHelper<Profile>()
@@ -75,7 +78,15 @@ function ElencoUtenti() {
           .from('user_profiles')
           .select('id, username, role, avatar_url, created_at')
           .order('created_at', { ascending: false })
-        setData(rows ?? [])
+
+        /* Le email arrivano da auth.users, che il pannello non puo'
+           leggere direttamente. Se la chiamata fallisce (utente non
+           admin) l'elenco resta quello di prima, senza colonna vuota che
+           sembri un errore. */
+        const { data: emails } = await supabase.rpc('admin_email_utenti')
+        const perId = new Map<string, string>((emails ?? []).map((e: { id: string; email: string }) => [e.id, e.email]))
+
+        setData((rows ?? []).map(r => ({ ...r, email: perId.get(r.id) ?? null })))
       } catch { /* leave empty */ } finally { setLoading(false) }
     }
     load()
@@ -99,6 +110,22 @@ function ElencoUtenti() {
     columnHelper.accessor('username', {
       header: 'Username',
       cell: info => <span className="font-medium text-gray-900 dark:text-white">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor('email', {
+      header: 'Email',
+      cell: info => {
+        const v = info.getValue()
+        if (!v) return <span className="text-gray-300 dark:text-gray-600">—</span>
+        /* Un clic copia: serve per scrivere a qualcuno senza riscriverla a
+           mano da una tabella. */
+        return (
+          <button type="button" title="Copia"
+            onClick={e => { e.stopPropagation(); navigator.clipboard?.writeText(v).catch(() => {}) }}
+            className="text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+            {v}
+          </button>
+        )
+      },
     }),
     columnHelper.accessor('role', {
       header: 'Ruolo',
@@ -156,7 +183,7 @@ function ElencoUtenti() {
             type="text"
             value={globalFilter}
             onChange={e => setGlobalFilter(e.target.value)}
-            placeholder="Cerca per username…"
+            placeholder="Cerca per username o email…"
             className="pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56"
           />
         </div>

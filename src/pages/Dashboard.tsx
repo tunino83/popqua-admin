@@ -6,8 +6,9 @@ import {
 } from 'recharts'
 import {
   Users, MessageSquare, CheckCircle, Clock, Maximize2, X,
-  CalendarDays, CalendarCheck, FileEdit, XCircle, LayoutDashboard,
+  CalendarDays, CalendarCheck, FileEdit, XCircle, LayoutDashboard, MapPinned,
 } from 'lucide-react'
+import UsersMap from './UsersMap'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
@@ -178,7 +179,7 @@ function OverviewMap(_: { isAdmin: boolean }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────
-type Tab = 'overview' | 'messages' | 'events'
+type Tab = 'overview' | 'messages' | 'events' | 'utenti'
 
 export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userId: string }) {
   const [tab, setTab]         = useState<Tab>('overview')
@@ -314,13 +315,17 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
     { id: 'overview',  label: 'Overview',  icon: LayoutDashboard },
     { id: 'messages',  label: 'Messaggi',  icon: MessageSquare },
     { id: 'events',    label: 'Eventi',    icon: CalendarDays },
+    /* Separata dalla mappa globale: quella mostra dove sono i CONTENUTI,
+       questa dove sono le PERSONE. Sovrapporle avrebbe dato una mappa che
+       non risponde bene a nessuna delle due domande. */
+    { id: 'utenti',    label: 'Mappa utenti', icon: MapPinned },
   ]
 
   return (
     <div className="space-y-5">
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
-        {TABS.filter(t => t.id !== 'events' || isAdmin).map(({ id, label, icon: Icon }) => (
+        {TABS.filter(t => (t.id !== 'events' && t.id !== 'utenti') || isAdmin).map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === id ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
             <Icon className="w-4 h-4" />{label}
@@ -351,6 +356,9 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
           <OverviewMap isAdmin={isAdmin} />
         </div>
       )}
+
+      {/* ── MAPPA UTENTI ──────────────────────────────────────────── */}
+      {tab === 'utenti' && isAdmin && <UsersMap />}
 
       {/* ── MESSAGGI ──────────────────────────────────────────────── */}
       {tab === 'messages' && (
