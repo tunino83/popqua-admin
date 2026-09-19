@@ -21,6 +21,10 @@ interface Profile {
   /* Non sta in user_profiles: vive in auth.users e arriva a parte, dalla
      funzione admin_email_utenti. */
   email?: string | null
+  /* Da dove e' entrato: 'web', 'android', 'ios'. Arriva da
+     admin_piattaforme_utenti, che mette insieme gli avvii registrati e i
+     token delle notifiche. */
+  piattaforme?: string[]
 }
 
 const columnHelper = createColumnHelper<Profile>()
@@ -86,7 +90,16 @@ function ElencoUtenti() {
         const { data: emails } = await supabase.rpc('admin_email_utenti')
         const perId = new Map<string, string>((emails ?? []).map((e: { id: string; email: string }) => [e.id, e.email]))
 
-        setData((rows ?? []).map(r => ({ ...r, email: perId.get(r.id) ?? null })))
+        const { data: piatt } = await supabase.rpc('admin_piattaforme_utenti')
+        const piattPerId = new Map<string, string[]>(
+          (piatt ?? []).map((p: { user_id: string; piattaforme: string[] }) => [p.user_id, p.piattaforme ?? []])
+        )
+
+        setData((rows ?? []).map(r => ({
+          ...r,
+          email: perId.get(r.id) ?? null,
+          piattaforme: piattPerId.get(r.id) ?? [],
+        })))
       } catch { /* leave empty */ } finally { setLoading(false) }
     }
     load()
@@ -134,6 +147,33 @@ function ElencoUtenti() {
           {info.getValue() ?? 'user'}
         </span>
       ),
+    }),
+    columnHelper.accessor('piattaforme', {
+      header: 'Usa',
+      cell: info => {
+        const p = info.getValue() ?? []
+        const mobile = p.some(x => x === 'android' || x === 'ios')
+        const web = p.includes('web')
+        /* Vuoto e non "sconosciuto": di chi non e' mai entrato dopo questa
+           modifica non sappiamo niente, e inventare una risposta sarebbe
+           peggio che ammetterlo. */
+        if (!mobile && !web) return <span className="text-gray-300 dark:text-gray-600">—</span>
+        const etichette: string[] = []
+        if (web) etichette.push('Web')
+        if (p.includes('android')) etichette.push('Android')
+        if (p.includes('ios')) etichette.push('iOS')
+        return (
+          <div className="flex flex-wrap gap-1">
+            {etichette.map(e => (
+              <span key={e} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                e === 'Web'
+                  ? 'bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300'
+                  : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300'
+              }`}>{e}</span>
+            ))}
+          </div>
+        )
+      },
     }),
     columnHelper.accessor('created_at', {
       header: 'Creato il',
