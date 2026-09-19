@@ -53,7 +53,10 @@ function suggerimentoZona(utenti: number, aggiornato: string) {
   return `<b>${utenti} ${utenti === 1 ? 'persona' : 'persone'}</b><br>ultimo aggiornamento ${tempoFa(aggiornato)}`
 }
 
-export default function UsersMap() {
+/* soloMappa: dalla dashboard questa e' una mappa e basta, senza il modulo
+   per pubblicare. Scrivere un messaggio resta cosa della pagina Utenti,
+   dove si va apposta. */
+export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } = {}) {
   const mapRef      = useRef<HTMLDivElement>(null)
   const mappa       = useRef<L.Map | null>(null)
   const livelloZone = useRef<L.LayerGroup | null>(null)
@@ -102,10 +105,12 @@ export default function UsersMap() {
     L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(m)
     livelloZone.current = L.layerGroup().addTo(m)
 
-    m.on('click', (e: L.LeafletMouseEvent) => {
-      setPunto({ lat: e.latlng.lat, lon: e.latlng.lng })
-      setEsito(null)
-    })
+    if (!soloMappa) {
+      m.on('click', (e: L.LeafletMouseEvent) => {
+        setPunto({ lat: e.latlng.lat, lon: e.latlng.lng })
+        setEsito(null)
+      })
+    }
 
     setTimeout(() => m.invalidateSize(), 100)
     caricaZone()
@@ -127,10 +132,15 @@ export default function UsersMap() {
     for (const z of zone) {
       const dLat = MEZZA_CELLA_M / 111320
       const dLon = MEZZA_CELLA_M / (111320 * Math.cos(z.lat * Math.PI / 180))
-      const intensita = 0.25 + 0.55 * (z.utenti / massimo)
+      /* Appena accennati. I quadrati pieni di azzurro coprivano strade e
+         nomi dei luoghi, cioe' proprio quello che serve per capire DOVE
+         sono le persone: a dire quante sono ci pensa gia' il numero nel
+         cerchio. Restano un contorno tratteggiato e un velo di colore che
+         cresce appena con la quantita'. */
+      const intensita = 0.05 + 0.10 * (z.utenti / massimo)
       const riquadro = L.rectangle(
         [[z.lat - dLat, z.lon - dLon], [z.lat + dLat, z.lon + dLon]],
-        { color: '#0079AC', weight: 2, fillColor: '#0FB8FC', fillOpacity: intensita },
+        { color: '#0079AC', weight: 1, opacity: 0.45, dashArray: '4 4', fillColor: '#0FB8FC', fillOpacity: intensita },
       )
       riquadro.bindTooltip(suggerimentoZona(z.utenti, z.aggiornato), { direction: 'top' })
       riquadro.on('click', (e: L.LeafletMouseEvent) => apriZona(e, z))
@@ -185,6 +195,7 @@ export default function UsersMap() {
      principale, mettere un messaggio dove c'e' gente. */
   function apriZona(e: L.LeafletMouseEvent, z: Zona) {
     L.DomEvent.stopPropagation(e)
+    if (soloMappa) return
     setPunto({ lat: z.lat, lon: z.lon })
     setEsito(null)
   }
@@ -243,7 +254,7 @@ export default function UsersMap() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Zone da 500 m con le persone che hanno aperto l'app negli ultimi 14 giorni. Clicca una zona o un punto per lasciare un messaggio.
+            Zone da 500 m con le persone che hanno aperto l'app negli ultimi 14 giorni.{soloMappa ? '' : ' Clicca una zona o un punto per lasciare un messaggio.'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -263,11 +274,12 @@ export default function UsersMap() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 items-start">
-        <div className="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-          <div ref={mapRef} className="cursor-crosshair" style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
+      <div className={`grid gap-4 items-start ${soloMappa ? 'grid-cols-1' : 'grid-cols-3'}`}>
+        <div className={`${soloMappa ? '' : 'col-span-2'} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden`}>
+          <div ref={mapRef} className={soloMappa ? '' : 'cursor-crosshair'} style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
         </div>
 
+        {!soloMappa && (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5 space-y-4">
           {!punto ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -333,6 +345,7 @@ export default function UsersMap() {
             </form>
           )}
         </div>
+        )}
       </div>
     </div>
   )

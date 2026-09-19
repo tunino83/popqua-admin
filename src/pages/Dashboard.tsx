@@ -358,7 +358,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
       )}
 
       {/* ── MAPPA UTENTI ──────────────────────────────────────────── */}
-      {tab === 'utenti' && isAdmin && <UsersMap />}
+      {tab === 'utenti' && isAdmin && <UsersMap soloMappa />}
 
       {/* ── MESSAGGI ──────────────────────────────────────────────── */}
       {tab === 'messages' && (
