@@ -382,7 +382,7 @@ export default function Capsule() {
                 <p className="text-xs text-gray-400 mt-1">{MODI.find(m => m.id === bozza.modo_posizione)?.aiuto}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={etichetta}>Si apre dal</label>
                   <input type="datetime-local" value={bozza.apre_dal} onChange={e => aggiorna('apre_dal', e.target.value)} className={inputCls} />
@@ -428,7 +428,7 @@ export default function Capsule() {
                 <p className="text-xs text-gray-400">Maiuscole, accenti e spazi in più non contano.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={etichetta}>App</label>
                   <select value={bozza.subdomain} onChange={e => aggiorna('subdomain', e.target.value)} className={inputCls}>

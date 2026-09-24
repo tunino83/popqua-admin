@@ -249,7 +249,7 @@ function ElencoUtenti() {
         {loading ? (
           <div className="p-12 text-center text-gray-400">Caricamento…</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               {table.getHeaderGroups().map(hg => (
                 <tr key={hg.id}>

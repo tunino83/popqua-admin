@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, Menu } from 'lucide-react'
 
 function resolveTitle(pathname: string): string {
   if (pathname === '/') return 'Dashboard'
@@ -18,15 +18,22 @@ function resolveTitle(pathname: string): string {
 interface HeaderProps {
   darkMode: boolean
   onToggleDark: () => void
+  onApriMenu?: () => void
 }
 
-export default function Header({ darkMode, onToggleDark }: HeaderProps) {
+export default function Header({ darkMode, onToggleDark, onApriMenu }: HeaderProps) {
   const location = useLocation()
   const title = resolveTitle(location.pathname)
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center px-6 gap-4 flex-shrink-0">
-      <h1 className="text-xl font-semibold text-gray-900 dark:text-white flex-1">{title}</h1>
+    <header className="h-16 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 flex-shrink-0">
+      {/* Solo dove la barra laterale e' nascosta. */}
+      <button onClick={onApriMenu} aria-label="Apri il menu"
+        className="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <Menu className="w-5 h-5" />
+      </button>
+
+      <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex-1 truncate">{title}</h1>
 
       <button
         onClick={onToggleDark}
@@ -36,7 +43,9 @@ export default function Header({ darkMode, onToggleDark }: HeaderProps) {
         {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
       </button>
 
-      <span className="text-sm font-semibold bg-indigo-600 text-white px-3 py-1 rounded-full">
+      {/* L'etichetta del ruolo sparisce sul piccolo: e' decorativa, e il
+          titolo della pagina conta di piu'. */}
+      <span className="hidden sm:inline text-sm font-semibold bg-indigo-600 text-white px-3 py-1 rounded-full">
         Admin
       </span>
     </header>

@@ -6,9 +6,14 @@ interface SidebarProps {
   username: string
   isAdmin: boolean
   userId: string
+  /* Su telefono la barra laterale esce dallo schermo e torna solo quando
+     la si chiama: sessantaquattro caratteri di larghezza fissa su un
+     display da 375 px lasciavano un terzo di pagina al contenuto. */
+  aperta?: boolean
+  onChiudi?: () => void
 }
 
-export default function Sidebar({ onSignOut, username, isAdmin, userId }: SidebarProps) {
+export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta = false, onChiudi }: SidebarProps) {
   const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
     { to: `/users/${userId}`, label: 'Il mio profilo', icon: UserCircle, adminOnly: false },
@@ -21,7 +26,15 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId }: Sideba
   ].filter(item => !item.adminOnly || isAdmin)
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+    <>
+    {/* Velo: sotto la barra aperta, chiude al tocco. Solo su schermi
+        stretti, dove la barra sta sopra il contenuto. */}
+    {aperta && (
+      <div onClick={onChiudi} className="lg:hidden fixed inset-0 z-30 bg-black/50" aria-hidden />
+    )}
+    <aside className={`w-64 flex-shrink-0 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col
+      fixed lg:static inset-y-0 left-0 z-40 transition-transform duration-200
+      ${aperta ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
@@ -44,6 +57,7 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId }: Sideba
             key={to}
             to={to}
             end={to === '/'}
+            onClick={onChiudi}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
@@ -77,5 +91,6 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId }: Sideba
         </div>
       </div>
     </aside>
+    </>
   )
 }

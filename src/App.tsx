@@ -33,6 +33,7 @@ function NewMessageFab() {
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(false)
+  const [menuAperto, setMenuAperto] = useState(false)
   const { user, profile, loading, isAdmin, isPremium, signIn, signInWithGoogle, signOut } = useAuth()
   const userId = profile?.id ?? ''
 
@@ -78,10 +79,11 @@ export default function App() {
   return (
     <div>
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-        <Sidebar onSignOut={signOut} username={profile?.username ?? user.email ?? 'Admin'} isAdmin={isAdmin} userId={userId} />
+        <Sidebar onSignOut={signOut} username={profile?.username ?? user.email ?? 'Admin'} isAdmin={isAdmin} userId={userId}
+          aperta={menuAperto} onChiudi={() => setMenuAperto(false)} />
         <div className="flex flex-col flex-1 overflow-hidden">
-          <Header darkMode={darkMode} onToggleDark={() => setDarkMode(!darkMode)} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <Header darkMode={darkMode} onToggleDark={() => setDarkMode(!darkMode)} onApriMenu={() => setMenuAperto(true)} />
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             <NewMessageFab />
             <Routes>
               <Route path="/" element={<Dashboard isAdmin={isAdmin} userId={userId} />} />

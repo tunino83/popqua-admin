@@ -245,7 +245,7 @@ export default function CreateMessage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 items-start">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
         {/* ─── Left column ─── */}
         <div className="space-y-4">

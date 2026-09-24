@@ -162,7 +162,7 @@ export default function EventDetail() {
 
       {error && <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-950 px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-900">{error}</div>}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column */}
         <div className="space-y-4">
           {/* Base info */}
@@ -184,7 +184,7 @@ export default function EventDetail() {
                 placeholder="Descrizione…" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Categoria</label>
                 <select value={event.category ?? ''} onChange={e => setEvent(p => ({ ...p, category: e.target.value || null }))}
@@ -206,7 +206,7 @@ export default function EventDetail() {
           {/* Timing */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><CalendarDays className="w-4 h-4 text-gray-400" />Date</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Inizio</label>
                 <input type="datetime-local" value={event.start_at ? event.start_at.slice(0, 16) : ''}

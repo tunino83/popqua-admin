@@ -274,8 +274,8 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
         </div>
       )}
 
-      <div className={`grid gap-4 items-start ${soloMappa ? 'grid-cols-1' : 'grid-cols-3'}`}>
-        <div className={`${soloMappa ? '' : 'col-span-2'} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden`}>
+      <div className={`grid gap-4 items-start ${soloMappa ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-3'}`}>
+        <div className={`${soloMappa ? '' : 'xl:col-span-2'} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden`}>
           <div ref={mapRef} className={soloMappa ? '' : 'cursor-crosshair'} style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
         </div>
 
