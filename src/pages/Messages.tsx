@@ -233,12 +233,17 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
         await import('leaflet.markercluster')
         await import('leaflet.markercluster/dist/MarkerCluster.css')
         await import('leaflet.markercluster/dist/MarkerCluster.Default.css')
-        const mcg = (L as any).markerClusterGroup({ maxClusterRadius: 80, spiderfyOnMaxZoom: false, zoomToBoundsOnClick: false })
-        mcg.on('clusterclick', (e: any) => {
-          const center = e.layer.getLatLng()
-          const z = map.getZoom()
-          const delta = z < 9 ? 6 : z <= 13 ? 4 : 2
-          map.setView(center, z + delta)
+      /* Il clic su un gruppo inquadra i suoi punti, non salta di N livelli
+         verso il centro: con lo zoom a passo fisso si finiva in mezzo al
+         gruppo senza vedere niente, perche' i punti stanno intorno, non
+         dove si e' cliccato. E a zoom massimo i punti sovrapposti si
+         aprono a raggiera, altrimenti il clic non ha piu' nessun effetto
+         e sembra rotto. */
+        const mcg = (L as any).markerClusterGroup({
+          maxClusterRadius: 60,
+          zoomToBoundsOnClick: true,
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
         })
         clusterRef.current = mcg
         addMarkers(mcg, filtered)

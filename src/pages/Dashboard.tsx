@@ -130,8 +130,12 @@ function OverviewMap(_: { isAdmin: boolean }) {
       await import('leaflet.markercluster/dist/MarkerCluster.css')
       await import('leaflet.markercluster/dist/MarkerCluster.Default.css')
 
-      const mcgEvents   = (L as any).markerClusterGroup({ maxClusterRadius: 50, zoomToBoundsOnClick: true, spiderfyOnMaxZoom: false })
-      const mcgMessages = (L as any).markerClusterGroup({ maxClusterRadius: 50, zoomToBoundsOnClick: true, spiderfyOnMaxZoom: false })
+      /* spiderfyOnMaxZoom acceso: a zoom massimo i punti sovrapposti si
+         aprono a raggiera. Spento, il clic su quei gruppi non faceva
+         niente e la mappa sembrava bloccata. */
+      const opzioniGruppo = { maxClusterRadius: 50, zoomToBoundsOnClick: true, spiderfyOnMaxZoom: true, showCoverageOnHover: false }
+      const mcgEvents   = (L as any).markerClusterGroup(opzioniGruppo)
+      const mcgMessages = (L as any).markerClusterGroup(opzioniGruppo)
 
       // Load events
       const evs = await getAllEvents()

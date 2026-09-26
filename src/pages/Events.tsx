@@ -94,7 +94,8 @@ export default function Events() {
       await import('leaflet.markercluster/dist/MarkerCluster.Default.css')
       const mkGroup = (color: string) => (L as any).markerClusterGroup({
         maxClusterRadius: 50, disableClusteringAtZoom: 14, iconCreateFunction: clusterIcon(color),
-        zoomToBoundsOnClick: true, spiderfyOnMaxZoom: false,
+        // Vedi Messages: a zoom massimo i punti sovrapposti devono aprirsi.
+        zoomToBoundsOnClick: true, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
       })
       const clusters = {
         active:   mkGroup('#22c55e'),
