@@ -13,6 +13,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { supabase } from '../lib/supabase'
+import { MessaggioRapido, type PuntoMappa } from '../components/MessaggioRapido'
 import { esc, safeUrl } from '../lib/escapeHtml'
 
 interface AdminMessage {
@@ -99,11 +100,20 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [view, setView] = useState<ViewMode>('list')
+  /* Il punto toccato sulla mappa: apre il pannello di invio rapido. */
+  const [puntoNuovo, setPuntoNuovo] = useState<PuntoMappa | null>(null)
+  const segnaposto = useRef<L.Marker | null>(null)
+  const cerchio = useRef<L.Circle | null>(null)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const clusterRef = useRef<any>(null)
   const avatarMapRef = useRef<Map<string, string | null>>(new Map())
+
+  /* Rilettura dopo un invio rapido: load() vive dentro l'effetto, e
+     dall'esterno non si puo' chiamare. Un contatore che cambia lo fa
+     ripartire. */
+  const [ricarica, setRicarica] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -149,7 +159,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       }
     }
     load()
-  }, [])
+  }, [ricarica])
 
   const filtered = useMemo(() => data.filter(msg => {
     if (statusFilter !== 'all' && getStatus(msg) !== statusFilter) return false
@@ -207,6 +217,13 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     if (!mapInstanceRef.current) {
       const map = L.map(el).setView([41.9, 12.5], 6)
       mapInstanceRef.current = map
+
+      /* Un clic sul vuoto scrive li'. Sui segnaposti esistenti no: quelli
+         aprono il messaggio che c'e' gia', e aprire il modulo di scrittura
+         sopra il fumetto di un altro sarebbe un inganno. */
+      map.on('click', (e: L.LeafletMouseEvent) => {
+        setPuntoNuovo({ lat: e.latlng.lat, lon: e.latlng.lng })
+      })
       const tile = L.tileLayer(OSM_TILES, OSM_OPTIONS)
       tile.addTo(map)
       tileLayerRef.current = tile
@@ -236,6 +253,20 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       setTimeout(() => mapInstanceRef.current?.invalidateSize(), 50)
     }
   }, [view, filtered])
+
+  /* Dove finira' il messaggio, e fin dove si vedra'. Senza, il punto
+     toccato resta un'idea: sulla mappa non si vede niente. */
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map) return
+    segnaposto.current?.remove(); segnaposto.current = null
+    cerchio.current?.remove(); cerchio.current = null
+    if (!puntoNuovo) return
+    segnaposto.current = L.marker([puntoNuovo.lat, puntoNuovo.lon]).addTo(map)
+    cerchio.current = L.circle([puntoNuovo.lat, puntoNuovo.lon], {
+      radius: 300, color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.08, dashArray: '6 4',
+    }).addTo(map)
+  }, [puntoNuovo, view])
 
   useEffect(() => {
     return () => {
@@ -412,8 +443,29 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
 
       {/* Map view */}
       {view === 'map' && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-          <div ref={mapRef} style={{ height: 600 }} />
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Tocca un punto vuoto della mappa per scrivere un messaggio li'.
+          </p>
+
+          <div className="relative">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+              <div ref={mapRef} className="cursor-crosshair" style={{ height: 600 }} />
+            </div>
+
+            {/* Sovrapposto sul largo, sotto la mappa sullo stretto: su un
+                telefono un pannello che copre la mappa nasconde proprio il
+                punto che hai appena scelto. */}
+            {puntoNuovo && (
+              <div className="mt-3 lg:mt-0 lg:absolute lg:top-4 lg:right-4 lg:w-80 lg:z-[500]">
+                <MessaggioRapido
+                  punto={puntoNuovo}
+                  onChiudi={() => setPuntoNuovo(null)}
+                  onFatto={() => setRicarica(n => n + 1)}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
