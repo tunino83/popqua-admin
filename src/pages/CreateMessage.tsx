@@ -198,7 +198,11 @@ export default function CreateMessage() {
         ? new Date(customExpiryDate + 'T23:59:59')
         : new Date(visibleAt.getTime() + expiresMinutes * 60 * 1000)
 
-      const username = adminProfile?.username ?? 'admin'
+      /* In anonimo il nome mostrato deve essere anonimo davvero: l'app
+         raggruppa gli anonimi guardando is_anonymous, e se qui lasciassimo
+         il nome vero le due viste si contraddirebbero. */
+      const nomeVero = adminProfile?.username ?? 'admin'
+      const username = isAnonymous ? 'Anonimo' : nomeVero
       const authorId = adminProfile?.id ?? null
 
       const { error: insertErr } = await supabase.from('messages').insert({
