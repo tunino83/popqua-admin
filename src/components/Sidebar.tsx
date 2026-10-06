@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, MessageSquare, Settings, LogOut, UserCircle, CalendarDays, Activity, Lock } from 'lucide-react'
+import { LayoutDashboard, Users, MessageSquare, Settings, LogOut, UserCircle, CalendarDays, Activity, Lock, Flag } from 'lucide-react'
 
 interface SidebarProps {
   onSignOut: () => void
@@ -20,6 +20,7 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
     { to: '/users', label: 'Utenti', icon: Users, adminOnly: true },
     { to: '/diagnostica', label: 'Diagnostica app', icon: Activity, adminOnly: true },
     { to: '/messages', label: 'Messaggi', icon: MessageSquare, adminOnly: false },
+    { to: '/segnalazioni', label: 'Segnalazioni', icon: Flag, adminOnly: true },
     { to: '/events', label: 'Eventi', icon: CalendarDays, adminOnly: true },
     { to: '/capsule', label: 'Capsule', icon: Lock, adminOnly: true },
     { to: '/settings', label: 'Impostazioni', icon: Settings, adminOnly: true },
