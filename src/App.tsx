@@ -15,6 +15,8 @@ import CreateMessage from './pages/CreateMessage'
 import Diagnostica from './pages/Diagnostica'
 import Capsule from './pages/Capsule'
 import Segnalazioni from './pages/Segnalazioni'
+import Locali from './pages/Locali'
+import LocaleDetail from './pages/LocaleDetail'
 import Login from './pages/Login'
 import { useAuth } from './hooks/useAuth'
 import { ShieldX } from 'lucide-react'
@@ -94,6 +96,8 @@ export default function App() {
               {isAdmin && <Route path="/diagnostica" element={<Diagnostica />} />}
               {isAdmin && <Route path="/capsule" element={<Capsule />} />}
               {isAdmin && <Route path="/segnalazioni" element={<Segnalazioni />} />}
+              {isAdmin && <Route path="/locali" element={<Locali />} />}
+              {isAdmin && <Route path="/locali/:id" element={<LocaleDetail />} />}
               <Route path="/users/:id" element={<UserDetail />} />
               <Route path="/messages" element={<Messages isAdmin={isAdmin} userId={userId} />} />
               <Route path="/messages/new" element={<CreateMessage />} />
