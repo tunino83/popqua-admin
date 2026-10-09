@@ -184,6 +184,21 @@ export default function UserDetail() {
     setSaving(false)
   }
 
+  const [cambioRuolo, setCambioRuolo] = useState(false)
+  const [erroreRuolo, setErroreRuolo] = useState<string | null>(null)
+  async function cambiaRuolo(nuovo: string) {
+    if (!id || !profile || (profile.role ?? 'user') === nuovo) return
+    const avviso = nuovo === 'admin'
+      ? `Rendere ${profile.username} amministratore? Potrà vedere e modificare tutto, compresi utenti e ruoli.`
+      : `Cambiare il ruolo di ${profile.username} in ${nuovo}?`
+    if (!confirm(avviso)) return
+    setCambioRuolo(true); setErroreRuolo(null)
+    const { error } = await supabase.from('user_profiles').update({ role: nuovo }).eq('id', id)
+    if (error) setErroreRuolo(error.code === '42501' ? 'Solo un amministratore può cambiare i ruoli.' : `Errore: ${error.message}`)
+    else { setProfile(p => p ? { ...p, role: nuovo } : p); setEditRole(nuovo) }
+    setCambioRuolo(false)
+  }
+
   const now = new Date()
 
   if (loading) return <div className="flex items-center justify-center py-20 text-gray-400">Caricamento…</div>
@@ -257,11 +272,22 @@ export default function UserDetail() {
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1.5">
                   <div>
                     <span className="text-xs text-gray-400">Ruolo</span>
-                    <div className="mt-0.5">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleBg[profile.role ?? 'user'] ?? roleBg['user']}`}>
-                        {profile.role ?? 'user'}
-                      </span>
+                    {/* Il ruolo si cambia da qui con un tocco: prima stava
+                        nascosto dietro la matita accanto al nome. */}
+                    <div className="mt-0.5 flex gap-1" role="radiogroup" aria-label="Ruolo">
+                      {ROLES.map(r => {
+                        const sel = (profile.role ?? 'user') === r
+                        return (
+                          <button key={r} role="radio" aria-checked={sel} disabled={cambioRuolo} onClick={() => cambiaRuolo(r)}
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition ${sel
+                              ? `${roleBg[r] ?? roleBg['user']} border-transparent`
+                              : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                            {r === 'user' ? 'Utente' : r === 'premium' ? 'Premium' : 'Admin'}
+                          </button>
+                        )
+                      })}
                     </div>
+                    {erroreRuolo && <p className="text-xs text-red-500 mt-1">{erroreRuolo}</p>}
                   </div>
                   <div>
                     <span className="text-xs text-gray-400">Registrato</span>

@@ -11,7 +11,8 @@ export const SKIN = [
   { id: 'sport', nome: 'Sport (campo, stadio)' },
   { id: 'barsport', nome: 'Bar sport' },
   { id: 'campus', nome: 'Campus / scuola' },
-  { id: 'diesis', nome: 'Diesis (su misura)' },
+  { id: 'diesis', nome: 'Diesis (disegnata a mano)' },
+  { id: 'custom', nome: '★ Su misura (la componi qui)' },
 ] as const
 
 export const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
@@ -24,6 +25,8 @@ export interface TemaLocale {
   motto?: string
   testi?: { lascia?: string; vuoto?: string; invia?: string }
   frasi?: string[]
+  /** Solo per la skin 'custom'. */
+  aspetto?: import('../components/EditorSuMisura').Aspetto
 }
 
 export interface Locale {

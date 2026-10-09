@@ -9,6 +9,7 @@ import {
   SKIN, GIORNI, type Locale, type Fascia, type VoceVetrina,
 } from '../lib/locali'
 import { useToast } from '../components/Toast'
+import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -153,7 +154,11 @@ export default function LocaleDetail() {
               <div><label className={etichetta}>Dove (sottotitolo)</label><input className={campo} value={l.dove ?? ''} onChange={e => aggiorna({ dove: e.target.value })} /></div>
               <div>
                 <label className={etichetta}>Skin</label>
-                <select className={campo} value={l.skin} onChange={e => aggiorna({ skin: e.target.value })}>
+                <select className={campo} value={l.skin} onChange={e => {
+                  const skin = e.target.value
+                  // Passando a su misura si parte da un aspetto pronto da modificare.
+                  aggiorna(skin === 'custom' && !tema.aspetto ? { skin, tema: { ...tema, aspetto: structuredClone(PARTENZE.pub.aspetto) } } : { skin })
+                }}>
                   {SKIN.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
                 </select>
               </div>
@@ -191,6 +196,17 @@ export default function LocaleDetail() {
             </div>
           </section>
 
+          {/* Aspetto su misura */}
+          {l.skin === 'custom' && tema.aspetto && (
+            <section className={riquadro}>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Aspetto su misura</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tutto lo stile del locale: colori, sfondo, caratteri, come sono fatti i messaggi e il pulsante. Anteprima a destra.</p>
+              </div>
+              <EditorSuMisura a={tema.aspetto} onChange={a => aggiornaTema({ aspetto: a })} />
+            </section>
+          )}
+
           {/* Stile */}
           <section className={riquadro}>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Stile del locale</h2>
@@ -219,6 +235,13 @@ export default function LocaleDetail() {
         </div>
 
         <div className="space-y-6">
+          {l.skin === 'custom' && tema.aspetto && (
+            <section className={`${riquadro} lg:sticky lg:top-0`}>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Anteprima</h2>
+              <div className="max-w-xs mx-auto"><AnteprimaSuMisura a={tema.aspetto} nome={l.nome ?? ''} lascia={tema.testi?.lascia ?? ''} /></div>
+            </section>
+          )}
+
           {/* Posizione */}
           <section className={riquadro}>
             <div>
