@@ -12,7 +12,7 @@ import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 
 const VUOTO: Partial<Locale> = {
-  nome: '', dove: '', skin: 'locali', tipo: null, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
+  nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
   lat: 41.0753, lon: 14.2903,
 }
 
@@ -149,6 +149,10 @@ export default function LocaleDetail() {
               <span className="text-sm text-gray-700 dark:text-gray-300">Attivo <span className="text-gray-400">(lo stile si può proporre)</span></span>
               <input type="checkbox" checked={!!l.attivo} onChange={e => aggiorna({ attivo: e.target.checked })} className="w-5 h-5 accent-indigo-600" />
             </label>
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Macro locale <span className="text-gray-400">(quartiere, paese, centro commerciale: contiene altri locali; raggio fino a 20 km)</span></span>
+              <input type="checkbox" checked={!!l.macro} onChange={e => aggiorna({ macro: e.target.checked, ...(!e.target.checked && (l.raggio_m ?? 0) > 2000 ? { raggio_m: 2000 } : {}) })} className="w-5 h-5 accent-indigo-600" />
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <div><label className={etichetta}>Nome</label><input className={campo} value={l.nome ?? ''} onChange={e => aggiorna({ nome: e.target.value })} /></div>
               <div><label className={etichetta}>Dove (sottotitolo)</label><input className={campo} value={l.dove ?? ''} onChange={e => aggiorna({ dove: e.target.value })} /></div>
@@ -160,7 +164,9 @@ export default function LocaleDetail() {
                   // Il tipo porta la sua skin (e l'emoji, se non c'e' gia').
                   const nuovoTema = { ...tema, emoji: tema.emoji || t.emoji }
                   if (t.skin === 'custom' && !tema.aspetto) nuovoTema.aspetto = structuredClone(PARTENZE.pub.aspetto)
-                  aggiorna({ tipo: t.id, skin: t.skin, tema: nuovoTema })
+                  // Quartiere, paese e centro commerciale sono macro locali.
+                  const macro = ['quartiere', 'paese', 'centro'].includes(t.id)
+                  aggiorna({ tipo: t.id, skin: t.skin, tema: nuovoTema, ...(macro ? { macro: true, raggio_m: Math.max(l.raggio_m ?? 150, 1500) } : {}) })
                 }}>
                   <option value="">— scegli —</option>
                   {CATEGORIE.map(c => (
@@ -184,7 +190,7 @@ export default function LocaleDetail() {
                   ))}
                 </select>
               </div>
-              <div><label className={etichetta}>Raggio (m)</label><input type="number" min={30} max={2000} className={campo} value={l.raggio_m ?? 150} onChange={e => aggiorna({ raggio_m: Number(e.target.value) })} /></div>
+              <div><label className={etichetta}>Raggio (m)</label><input type="number" min={30} max={l.macro ? 20000 : 2000} className={campo} value={l.raggio_m ?? 150} onChange={e => aggiorna({ raggio_m: Number(e.target.value) })} /></div>
             </div>
           </section>
 

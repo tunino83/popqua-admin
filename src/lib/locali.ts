@@ -48,6 +48,11 @@ export const CATEGORIE = [
     { id: 'scuola', nome: 'Scuola', skin: 'campus', emoji: '🏫' },
     { id: 'universita', nome: 'Università', skin: 'campus', emoji: '🎓' },
   ] },
+  { nome: 'Territorio', tipi: [
+    { id: 'quartiere', nome: 'Quartiere', skin: 'custom', emoji: '🏘️' },
+    { id: 'paese', nome: 'Paese o città', skin: 'custom', emoji: '🏛️' },
+    { id: 'centro', nome: 'Centro commerciale', skin: 'custom', emoji: '🛍️' },
+  ] },
   { nome: 'Altro', tipi: [
     { id: 'altro', nome: 'Altro', skin: 'custom', emoji: '★' },
   ] },
@@ -79,6 +84,8 @@ export interface Locale {
   dove: string | null
   skin: string
   tipo: string | null
+  /** Quartiere, paese, centro commerciale: contiene altri locali. */
+  macro: boolean
   raggio_m: number
   attivo: boolean
   tema: TemaLocale
@@ -117,7 +124,7 @@ export async function getLocale(id: string): Promise<Locale | null> {
 
 export async function salvaLocale(l: Partial<Locale>): Promise<string> {
   const riga = {
-    nome: l.nome, dove: l.dove || null, skin: l.skin, tipo: l.tipo || null, raggio_m: l.raggio_m, attivo: l.attivo,
+    nome: l.nome, dove: l.dove || null, skin: l.skin, tipo: l.tipo || null, macro: !!l.macro, raggio_m: l.raggio_m, attivo: l.attivo,
     tema: l.tema ?? {}, dal: l.dal || null, al: l.al || null, orari: l.orari ?? [],
     location: `SRID=4326;POINT(${l.lon} ${l.lat})`,
   }

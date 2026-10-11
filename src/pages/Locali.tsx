@@ -48,7 +48,7 @@ export default function Locali() {
                   {l.tema?.emoji || <Store className="w-5 h-5 text-indigo-500" />}
                 </span>
                 <span className="min-w-0">
-                  <span className="block font-semibold text-gray-900 dark:text-white truncate">{l.nome}{l.dove ? <span className="font-normal text-gray-500"> · {l.dove}</span> : null}</span>
+                  <span className="block font-semibold text-gray-900 dark:text-white truncate">{l.macro && <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 mr-1.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 align-middle">macro</span>}{l.nome}{l.dove ? <span className="font-normal text-gray-500"> · {l.dove}</span> : null}</span>
                   <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 truncate">
                     {(() => { const t = tipoDiPosto(l.tipo); return t ? `${t.categoria} · ${t.nome}` : SKIN.find(s => s.id === l.skin)?.nome ?? l.skin })()} · {l.raggio_m} m · <Clock className="w-3 h-3" /> {descriviDisponibilita(l)}
                   </span>
