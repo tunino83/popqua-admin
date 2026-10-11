@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Store, Clock } from 'lucide-react'
-import { elencoLocali, attivaLocale, descriviDisponibilita, SKIN, type Locale } from '../lib/locali'
+import { elencoLocali, attivaLocale, descriviDisponibilita, SKIN, tipoDiPosto, type Locale } from '../lib/locali'
 import { useToast } from '../components/Toast'
 
 /* Elenco dei locali con lo stile personalizzato: acceso/spento con un
@@ -50,7 +50,7 @@ export default function Locali() {
                 <span className="min-w-0">
                   <span className="block font-semibold text-gray-900 dark:text-white truncate">{l.nome}{l.dove ? <span className="font-normal text-gray-500"> · {l.dove}</span> : null}</span>
                   <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {SKIN.find(s => s.id === l.skin)?.nome ?? l.skin} · {l.raggio_m} m · <Clock className="w-3 h-3" /> {descriviDisponibilita(l)}
+                    {(() => { const t = tipoDiPosto(l.tipo); return t ? `${t.categoria} · ${t.nome}` : SKIN.find(s => s.id === l.skin)?.nome ?? l.skin })()} · {l.raggio_m} m · <Clock className="w-3 h-3" /> {descriviDisponibilita(l)}
                   </span>
                 </span>
               </button>

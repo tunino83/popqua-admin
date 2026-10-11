@@ -6,13 +6,13 @@ import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import {
   getLocale, salvaLocale, eliminaLocale, vociVetrina, salvaVetrina, descriviDisponibilita,
-  SKIN, GIORNI, type Locale, type Fascia, type VoceVetrina,
+  SKIN_GRUPPI, CATEGORIE, tipoDiPosto, GIORNI, type Locale, type Fascia, type VoceVetrina,
 } from '../lib/locali'
 import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 
 const VUOTO: Partial<Locale> = {
-  nome: '', dove: '', skin: 'locali', raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
+  nome: '', dove: '', skin: 'locali', tipo: null, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
   lat: 41.0753, lon: 14.2903,
 }
 
@@ -153,13 +153,35 @@ export default function LocaleDetail() {
               <div><label className={etichetta}>Nome</label><input className={campo} value={l.nome ?? ''} onChange={e => aggiorna({ nome: e.target.value })} /></div>
               <div><label className={etichetta}>Dove (sottotitolo)</label><input className={campo} value={l.dove ?? ''} onChange={e => aggiorna({ dove: e.target.value })} /></div>
               <div>
-                <label className={etichetta}>Skin</label>
+                <label className={etichetta}>Tipo di posto</label>
+                <select className={campo} value={l.tipo ?? ''} onChange={e => {
+                  const t = tipoDiPosto(e.target.value)
+                  if (!t) { aggiorna({ tipo: null }); return }
+                  // Il tipo porta la sua skin (e l'emoji, se non c'e' gia').
+                  const nuovoTema = { ...tema, emoji: tema.emoji || t.emoji }
+                  if (t.skin === 'custom' && !tema.aspetto) nuovoTema.aspetto = structuredClone(PARTENZE.pub.aspetto)
+                  aggiorna({ tipo: t.id, skin: t.skin, tema: nuovoTema })
+                }}>
+                  <option value="">— scegli —</option>
+                  {CATEGORIE.map(c => (
+                    <optgroup key={c.nome} label={c.nome}>
+                      {c.tipi.map(t => <option key={t.id} value={t.id}>{t.emoji} {t.nome}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={etichetta}>Skin (predefinita dal tipo, si può cambiare)</label>
                 <select className={campo} value={l.skin} onChange={e => {
                   const skin = e.target.value
                   // Passando a su misura si parte da un aspetto pronto da modificare.
                   aggiorna(skin === 'custom' && !tema.aspetto ? { skin, tema: { ...tema, aspetto: structuredClone(PARTENZE.pub.aspetto) } } : { skin })
                 }}>
-                  {SKIN.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  {SKIN_GRUPPI.map(g => (
+                    <optgroup key={g.gruppo} label={g.gruppo}>
+                      {g.skin.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
               <div><label className={etichetta}>Raggio (m)</label><input type="number" min={30} max={2000} className={campo} value={l.raggio_m ?? 150} onChange={e => aggiorna({ raggio_m: Number(e.target.value) })} /></div>

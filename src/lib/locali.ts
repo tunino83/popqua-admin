@@ -4,16 +4,58 @@ import { supabase } from './supabase'
    nell'app. Tabella `locali` + vista `locali_admin` (lat, lon, aperto_ora)
    e la vetrina in `vetrina_voci`. Migrazioni nel repository dell'app. */
 
-export const SKIN = [
-  { id: 'locali', nome: 'Locali (bar, pub)' },
-  { id: 'ristorante', nome: 'Ristorante / pizzeria' },
-  { id: 'palestra', nome: 'Palestra' },
-  { id: 'sport', nome: 'Sport (campo, stadio)' },
-  { id: 'barsport', nome: 'Bar sport' },
-  { id: 'campus', nome: 'Campus / scuola' },
-  { id: 'diesis', nome: 'Diesis (disegnata a mano)' },
-  { id: 'custom', nome: '★ Su misura (la componi qui)' },
-] as const
+/* Le skin per gruppi (stesso ordine della scelta nell'app). */
+export const SKIN_GRUPPI: { gruppo: string; skin: { id: string; nome: string }[] }[] = [
+  { gruppo: 'Sport', skin: [
+    { id: 'sport', nome: 'Calcio' },
+    { id: 'tennis', nome: 'Tennis' },
+    { id: 'pallavolo', nome: 'Pallavolo' },
+    { id: 'barsport', nome: 'Basket (bar sport)' },
+    { id: 'palestra', nome: 'Palestra' },
+  ] },
+  { gruppo: 'Locali', skin: [
+    { id: 'locali', nome: 'Bar e pub' },
+    { id: 'ristorante', nome: 'Ristorante e pizzeria' },
+    { id: 'diesis', nome: 'Diesis (disegnata a mano)' },
+  ] },
+  { gruppo: 'Scuola e università', skin: [
+    { id: 'campus', nome: 'Campus' },
+  ] },
+  { gruppo: 'Su misura', skin: [
+    { id: 'custom', nome: '★ Su misura (la componi qui)' },
+  ] },
+]
+export const SKIN: { id: string; nome: string }[] = SKIN_GRUPPI.flatMap(g => g.skin)
+
+/* Categorie e tipi di posto: lo stesso elenco di src/lib/categorie.ts
+   nell'app. Il tipo dice cos'e' il posto e porta la skin predefinita. */
+export const CATEGORIE = [
+  { nome: 'Sport', tipi: [
+    { id: 'calcio', nome: 'Calcio', skin: 'sport', emoji: '⚽' },
+    { id: 'basket', nome: 'Basket', skin: 'barsport', emoji: '🏀' },
+    { id: 'tennis', nome: 'Tennis', skin: 'tennis', emoji: '🎾' },
+    { id: 'pallavolo', nome: 'Pallavolo', skin: 'pallavolo', emoji: '🏐' },
+    { id: 'palestra', nome: 'Palestra', skin: 'palestra', emoji: '🏋️' },
+  ] },
+  { nome: 'Locali', tipi: [
+    { id: 'pizzeria', nome: 'Pizzeria', skin: 'ristorante', emoji: '🍕' },
+    { id: 'ristorante', nome: 'Ristorante', skin: 'ristorante', emoji: '🍽️' },
+    { id: 'bar', nome: 'Bar', skin: 'locali', emoji: '☕' },
+    { id: 'pub', nome: 'Pub', skin: 'locali', emoji: '🍺' },
+    { id: 'musica', nome: 'Musica dal vivo', skin: 'locali', emoji: '🎸' },
+  ] },
+  { nome: 'Scuola e università', tipi: [
+    { id: 'scuola', nome: 'Scuola', skin: 'campus', emoji: '🏫' },
+    { id: 'universita', nome: 'Università', skin: 'campus', emoji: '🎓' },
+  ] },
+  { nome: 'Altro', tipi: [
+    { id: 'altro', nome: 'Altro', skin: 'custom', emoji: '★' },
+  ] },
+]
+export const tipoDiPosto = (id?: string | null) => {
+  for (const c of CATEGORIE) { const t = c.tipi.find(x => x.id === id); if (t) return { ...t, categoria: c.nome } }
+  return null
+}
 
 export const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
 
@@ -36,6 +78,7 @@ export interface Locale {
   nome: string
   dove: string | null
   skin: string
+  tipo: string | null
   raggio_m: number
   attivo: boolean
   tema: TemaLocale
@@ -74,7 +117,7 @@ export async function getLocale(id: string): Promise<Locale | null> {
 
 export async function salvaLocale(l: Partial<Locale>): Promise<string> {
   const riga = {
-    nome: l.nome, dove: l.dove || null, skin: l.skin, raggio_m: l.raggio_m, attivo: l.attivo,
+    nome: l.nome, dove: l.dove || null, skin: l.skin, tipo: l.tipo || null, raggio_m: l.raggio_m, attivo: l.attivo,
     tema: l.tema ?? {}, dal: l.dal || null, al: l.al || null, orari: l.orari ?? [],
     location: `SRID=4326;POINT(${l.lon} ${l.lat})`,
   }
