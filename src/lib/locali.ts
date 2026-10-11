@@ -23,6 +23,8 @@ export interface TemaLocale {
   colori?: { signal?: string; time?: string }
   emoji?: string
   motto?: string
+  /** La scritta del posto nell'app: "Sei al Diesis". Vuota = "Sei da <nome>". */
+  saluto?: string
   testi?: { lascia?: string; vuoto?: string; invia?: string }
   frasi?: string[]
   /** Solo per la skin 'custom'. */

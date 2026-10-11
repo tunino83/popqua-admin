@@ -220,7 +220,11 @@ export default function LocaleDetail() {
                 </div>
               </div>
             </div>
-            <div><label className={etichetta}>Motto (nella proposta "Sei da …")</label><input className={campo} value={tema.motto ?? ''} onChange={e => aggiornaTema({ motto: e.target.value || undefined })} /></div>
+            <div>
+              <label className={etichetta}>Saluto: la scritta del posto, nella fascia e nella proposta (vuoto = "Sei da {l.nome || 'nome'}")</label>
+              <input className={campo} maxLength={40} placeholder={`Sei al ${l.nome || 'Diesis'}`} value={tema.saluto ?? ''} onChange={e => aggiornaTema({ saluto: e.target.value || undefined })} />
+            </div>
+            <div><label className={etichetta}>Motto (sotto il saluto, nella proposta)</label><input className={campo} value={tema.motto ?? ''} onChange={e => aggiornaTema({ motto: e.target.value || undefined })} /></div>
             <div className="grid grid-cols-3 gap-3">
               <div><label className={etichetta}>Pulsante per scrivere</label><input className={campo} maxLength={30} value={tema.testi?.lascia ?? ''} onChange={e => aggiornaTema({ testi: { ...tema.testi, lascia: e.target.value || undefined } })} /></div>
               <div><label className={etichetta}>Invio</label><input className={campo} maxLength={30} value={tema.testi?.invia ?? ''} onChange={e => aggiornaTema({ testi: { ...tema.testi, invia: e.target.value || undefined } })} /></div>
