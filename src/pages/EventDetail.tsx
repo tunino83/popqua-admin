@@ -3,9 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save, Trash2, MapPin, Upload, Users, CalendarDays } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { getEventById, upsertEvent, deleteEvent, uploadEventImage, parseEventCoords, type AdminEvent } from '../lib/events'
+import { getEventById, upsertEvent, deleteEvent, uploadEventImage, parseEventCoords, skinDaCategoria, type AdminEvent } from '../lib/events'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { SKIN_GRUPPI, type TemaLocale } from '../lib/locali'
+import { StilePosto } from '../components/StilePosto'
+import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 
 const CATEGORIES = ['Musica', 'Sport', 'Arte', 'Food', 'Cultura', 'Mercato', 'Teatro', 'Cinema', 'Festival', 'Altro']
 const STATUSES = [
@@ -22,7 +25,10 @@ export default function EventDetail() {
   const mapInstance = useRef<L.Map | null>(null)
   const markerRef = useRef<L.Marker | null>(null)
 
-  const [event, setEvent] = useState<Partial<AdminEvent>>({ status: 'draft' })
+  const [event, setEvent] = useState<Partial<AdminEvent>>({ status: 'draft', raggio_m: 300, skin: null, tema: {} })
+  const tema: TemaLocale = event.tema ?? {}
+  const aggiornaTema = (p: Partial<TemaLocale>) => setEvent(e => ({ ...e, tema: { ...(e.tema ?? {}), ...p } }))
+  const cerchioRef = useRef<L.Circle | null>(null)
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
   const [participants, setParticipants] = useState(0)
@@ -80,8 +86,20 @@ export default function EventDetail() {
       }
     })
 
-    return () => { map.remove(); mapInstance.current = null; markerRef.current = null }
+    return () => { map.remove(); mapInstance.current = null; markerRef.current = null; cerchioRef.current = null }
   }, [loading])
+
+  /* Il cerchio e' il raggio entro cui l'app propone lo stile dell'evento. */
+  useEffect(() => {
+    const map = mapInstance.current
+    const la = parseFloat(lat), lo = parseFloat(lng)
+    if (!map || isNaN(la) || isNaN(lo)) return
+    if (!cerchioRef.current) {
+      cerchioRef.current = L.circle([la, lo], { radius: event.raggio_m ?? 300, color: '#4f46e5', weight: 1.5, fillOpacity: 0.08 }).addTo(map)
+    } else {
+      cerchioRef.current.setLatLng([la, lo]).setRadius(event.raggio_m ?? 300)
+    }
+  }, [lat, lng, event.raggio_m, loading])
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -231,6 +249,54 @@ export default function EventDetail() {
                 <p className="text-[10px] text-gray-400 mt-0.5">Fine giornata: 23:59</p>
               </div>
             </div>
+          </div>
+
+          {/* Stile nell'app */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Stile nell'app</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Mentre l'evento è in corso, chi entra nel raggio riceve la proposta «Sei a {event.title || 'questo evento'}»:
+                rispondendo «Ci sono» la bacheca prende lo stile dell'evento e la persona risulta fra i partecipanti.
+                Senza fine dichiarata l'evento dura tre ore.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Skin</label>
+                <select value={event.skin ?? ''} onChange={e => {
+                  const skin = e.target.value || null
+                  setEvent(p => ({ ...p, skin, ...(skin === 'custom' && !p.tema?.aspetto ? { tema: { ...(p.tema ?? {}), aspetto: structuredClone(PARTENZE.pub.aspetto) } } : {}) }))
+                }}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="">Dalla categoria ({skinDaCategoria(event.category).nome})</option>
+                  <optgroup label="Bacheca">
+                    <option value="giorno">Bacheca (solo saluto ed emoji)</option>
+                    <option value="notte">Neon</option>
+                  </optgroup>
+                  {SKIN_GRUPPI.map(g => (
+                    <optgroup key={g.gruppo} label={g.gruppo}>
+                      {g.skin.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Raggio (m)</label>
+                <input type="number" min={30} max={2000} value={event.raggio_m ?? 300}
+                  onChange={e => setEvent(p => ({ ...p, raggio_m: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+            <StilePosto tema={tema} onTema={aggiornaTema}
+              salutoPredefinito={`Sei a «${event.title || 'titolo'}»`} esempioSaluto="Sei alla Sagra della castagna" />
+            {event.skin === 'custom' && tema.aspetto && (
+              <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Aspetto su misura</h3>
+                <EditorSuMisura a={tema.aspetto} onChange={a => aggiornaTema({ aspetto: a })} />
+                <div className="max-w-xs mx-auto"><AnteprimaSuMisura a={tema.aspetto} nome={event.title ?? ''} lascia={tema.testi?.lascia ?? ''} /></div>
+              </div>
+            )}
           </div>
 
           {/* Contact */}

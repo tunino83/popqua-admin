@@ -10,6 +10,7 @@ import {
 } from '../lib/locali'
 import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
+import { StilePosto } from '../components/StilePosto'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -238,31 +239,8 @@ export default function LocaleDetail() {
           {/* Stile */}
           <section className={riquadro}>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Stile del locale</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={etichetta}>Emoji</label><input className={campo} maxLength={4} value={tema.emoji ?? ''} onChange={e => aggiornaTema({ emoji: e.target.value || undefined })} /></div>
-              <div>
-                <label className={etichetta}>Colore principale (vuoto = quello della skin)</label>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={tema.colori?.signal ?? '#888888'} onChange={e => aggiornaTema({ colori: { ...tema.colori, signal: e.target.value } })} className="w-10 h-9 rounded border border-gray-200 dark:border-gray-700" />
-                  {tema.colori?.signal && <button onClick={() => aggiornaTema({ colori: { ...tema.colori, signal: undefined } })} className="text-xs text-gray-500 hover:text-rose-500">togli</button>}
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className={etichetta}>Saluto: la scritta del posto, nella fascia e nella proposta (vuoto = "Sei da {l.nome || 'nome'}")</label>
-              <input className={campo} maxLength={40} placeholder={`Sei al ${l.nome || 'Diesis'}`} value={tema.saluto ?? ''} onChange={e => aggiornaTema({ saluto: e.target.value || undefined })} />
-            </div>
-            <div><label className={etichetta}>Motto (sotto il saluto, nella proposta)</label><input className={campo} value={tema.motto ?? ''} onChange={e => aggiornaTema({ motto: e.target.value || undefined })} /></div>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className={etichetta}>Pulsante per scrivere</label><input className={campo} maxLength={30} value={tema.testi?.lascia ?? ''} onChange={e => aggiornaTema({ testi: { ...tema.testi, lascia: e.target.value || undefined } })} /></div>
-              <div><label className={etichetta}>Invio</label><input className={campo} maxLength={30} value={tema.testi?.invia ?? ''} onChange={e => aggiornaTema({ testi: { ...tema.testi, invia: e.target.value || undefined } })} /></div>
-              <div><label className={etichetta}>Bacheca vuota</label><input className={campo} maxLength={80} value={tema.testi?.vuoto ?? ''} onChange={e => aggiornaTema({ testi: { ...tema.testi, vuoto: e.target.value || undefined } })} /></div>
-            </div>
-            <div>
-              <label className={etichetta}>Frasi pronte (una per riga, massimo 5)</label>
-              <textarea rows={3} className={campo} value={(tema.frasi ?? []).join('\n')}
-                onChange={e => aggiornaTema({ frasi: e.target.value.split('\n').slice(0, 5) })} />
-            </div>
+            <StilePosto tema={tema} onTema={aggiornaTema}
+              salutoPredefinito={`Sei da ${l.nome || 'nome'}`} esempioSaluto={`Sei al ${l.nome || 'Diesis'}`} />
           </section>
         </div>
 

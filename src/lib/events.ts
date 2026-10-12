@@ -20,6 +20,22 @@ export interface AdminEvent {
   author_id: string | null
   created_at: string
   participant_count?: number
+  /* Lo stile nell'app mentre l'evento e' in corso, come per i locali.
+     skin null = la decide la categoria. Li puo' cambiare solo un admin. */
+  raggio_m?: number
+  skin?: string | null
+  tema?: import('./locali').TemaLocale
+}
+
+/* La skin che l'evento prende dalla categoria quando non ne ha una sua:
+   la stessa regola di skin_di_categoria nel database. */
+export function skinDaCategoria(categoria: string | null | undefined): { id: string; nome: string } {
+  switch (categoria) {
+    case 'Sport': return { id: 'sport', nome: 'Calcio' }
+    case 'Food': return { id: 'ristorante', nome: 'Ristorante' }
+    case 'Musica': case 'Festival': return { id: 'notte', nome: 'Neon' }
+    default: return { id: 'giorno', nome: 'Bacheca' }
+  }
 }
 
 export async function getAllEvents(): Promise<AdminEvent[]> {
@@ -53,6 +69,7 @@ const WRITABLE_FIELDS = [
   'title', 'description', 'location_text', 'location',
   'start_at', 'end_at', 'image_url', 'link', 'contact_email',
   'category', 'status', 'author_id',
+  'raggio_m', 'skin', 'tema',
 ] as const
 
 function pickWritable(event: Partial<AdminEvent>) {
