@@ -17,6 +17,7 @@ interface AdminMessage {
   text: string
   username: string
   author_id: string | null
+  is_anonymous: boolean | null
   message_type: 'message' | 'event' | 'offer' | null
   visible_at: string
   expires_at: string
@@ -125,7 +126,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
         while (true) {
           let q = supabase
             .from('messages')
-            .select('id, title, text, username, author_id, message_type, visible_at, expires_at, created_at, location, image_url')
+            .select('id, title, text, username, author_id, is_anonymous, message_type, visible_at, expires_at, created_at, location, image_url')
             .order('created_at', { ascending: false })
             .range(from, from + PAGE - 1)
           if (!isAdmin && userId) q = q.eq('author_id', userId)
@@ -176,9 +177,18 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
   }, [navigate])
 
 
-  function createAvatarIcon(avatarUrl: string | null, username: string): L.DivIcon {
+  function createAvatarIcon(avatarUrl: string | null, username: string, anonimo = false): L.DivIcon {
     const initial = esc((username?.[0] ?? '?').toUpperCase())
     const s = 34
+    /* Gli anonimi hanno tutti la stessa icona, da qualunque schermata
+       vengano: prima chi scriveva da "Nuovo" o dall'app compariva con il
+       proprio avatar (l'autore resta salvato), chi scriveva dalla mappa con
+       la "A" di Anonimo. L'autore vero si vede nel dettaglio. */
+    if (anonimo) {
+      const html = `<div style="width:${s}px;height:${s}px;border-radius:50%;background:#6b7280;border:2.5px solid #374151;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center">`
+        + `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>`
+      return L.divIcon({ html, className: '', iconSize: [s, s], iconAnchor: [s / 2, s / 2], popupAnchor: [0, -s / 2] })
+    }
     const inner = avatarUrl
       ? `<img src="${safeUrl(avatarUrl)}" width="${s}" height="${s}" style="object-fit:cover;width:${s}px;height:${s}px;border-radius:50%;display:block"/>`
       : `<div style="width:${s}px;height:${s}px;border-radius:50%;background:#4f46e5;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">${initial}</div>`
@@ -195,7 +205,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       const msgId = encodeURIComponent(m.id)
       const popup = `
         <div style="min-width:180px;font-family:system-ui,sans-serif">
-          <div style="font-size:11px;font-weight:600;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${esc(typeLabel[t])} · ${esc(m.username)}</div>
+          <div style="font-size:11px;font-weight:600;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${esc(typeLabel[t])} · ${esc(m.is_anonymous ? 'Anonimo' : m.username)}</div>
           <div style="font-size:13px;font-weight:600;color:#111;line-height:1.3">${esc(m.title ?? m.text)}</div>
           ${m.title ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">${esc(m.text)}</div>` : ''}
           ${imgHtml}
@@ -204,8 +214,8 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
             <a href="/messages/${msgId}" style="font-size:11px;font-weight:600;color:#4f46e5;text-decoration:none" onclick="event.preventDefault();window.__navigateTo('/messages/${msgId}')">Apri dettaglio →</a>
           </div>
         </div>`
-      const avatarUrl = m.author_id ? (avatarMapRef.current.get(m.author_id) ?? null) : null
-      const icon = createAvatarIcon(avatarUrl, m.username)
+      const avatarUrl = m.author_id && !m.is_anonymous ? (avatarMapRef.current.get(m.author_id) ?? null) : null
+      const icon = createAvatarIcon(avatarUrl, m.username, !!m.is_anonymous)
       L.marker([m.lat!, m.lng!], { icon }).bindPopup(popup, { maxWidth: m.image_url ? 300 : 240 }).addTo(mcg)
     })
   }
@@ -299,7 +309,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       header: 'Testo',
       cell: info => <span className="text-gray-600 dark:text-gray-400 max-w-xs truncate block">{info.getValue()}</span>,
     }),
-    columnHelper.accessor('username', { header: 'Autore' }),
+    columnHelper.accessor(r => r.is_anonymous ? 'Anonimo' : r.username, { id: 'username', header: 'Autore' }),
     columnHelper.accessor(r => typeLabel[r.message_type ?? 'message'], {
       id: 'message_type',
       header: 'Tipo',

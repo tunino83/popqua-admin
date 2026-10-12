@@ -77,6 +77,10 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
   /* Spento per difetto: un messaggio messo dall'amministrazione vicino a
      qualcuno non deve suonargli in tasca, a meno di volerlo davvero. */
   const [notifica, setNotifica] = useState(false)
+  /* Acceso per difetto, come nell'invio rapido dei Messaggi: prima qui non
+     c'era e il messaggio usciva sempre con il nome dell'admin, anche a chi
+     pensava di scrivere in anonimo. */
+  const [anonimo, setAnonimo] = useState(true)
   const [invio, setInvio]     = useState(false)
   const [esito, setEsito]     = useState<string | null>(null)
 
@@ -220,7 +224,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
     setInvio(true); setErrore(null)
 
     const ora = new Date()
-    const username = profilo?.username ?? 'admin'
+    const username = anonimo ? 'Anonimo' : (profilo?.username ?? 'admin')
     const { error } = await supabase.from('messages').insert({
       text: testo.trim(),
       title: titolo.trim() || null,
@@ -230,7 +234,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
       username,
       display_nickname: username,
       author_id: profilo?.id ?? null,
-      is_anonymous: false,
+      is_anonymous: anonimo,
       is_global: false,
       message_type: 'message',
       location_precision: 'exact',
@@ -326,6 +330,16 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
                   ))}
                 </div>
               </div>
+
+              <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                <input type="checkbox" checked={anonimo} onChange={e => setAnonimo(e.target.checked)} className="mt-0.5" />
+                <span>
+                  Anonimo
+                  <span className="block text-xs text-gray-400">
+                    {anonimo ? 'Firmato «Anonimo».' : `Firmato con il tuo nome: ${profilo?.username ?? 'admin'}.`}
+                  </span>
+                </span>
+              </label>
 
               <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
                 <input type="checkbox" checked={notifica} onChange={e => setNotifica(e.target.checked)} className="mt-0.5" />

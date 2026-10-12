@@ -65,6 +65,10 @@ export default function MessageDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [msg, setMsg] = useState<MsgDetail | null>(null)
+  /* Chi ha scritto davvero: per gli anonimi la firma e' "Anonimo", ma per
+     la moderazione serve sapere chi c'e' dietro. Nessun autore = scritto
+     dall'invio rapido del pannello. */
+  const [scrittoDa, setScrittoDa] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -74,7 +78,13 @@ export default function MessageDetail() {
     supabase.from('messages')
       .select('id, title, text, username, author_id, message_type, visible_at, expires_at, created_at, image_url, location, is_anonymous, display_nickname, place_id')
       .eq('id', id).single()
-      .then(({ data }) => { setMsg(data as MsgDetail); setLoading(false) })
+      .then(async ({ data }) => {
+        setMsg(data as MsgDetail); setLoading(false)
+        const autore = (data as MsgDetail | null)?.author_id
+        if (!autore) { setScrittoDa(null); return }
+        const { data: p } = await supabase.from('user_profiles').select('username').eq('id', autore).maybeSingle()
+        setScrittoDa(p?.username ?? null)
+      })
   }, [id])
 
   useEffect(() => {
@@ -140,6 +150,10 @@ export default function MessageDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field icon={User} label="Autore" value={msg.display_nickname ?? msg.username} />
               <Field icon={User} label="Anonimo" value={msg.is_anonymous ? 'Sì' : 'No'} />
+              {msg.is_anonymous && (
+                <Field icon={User} label="Scritto da (non visibile agli utenti)"
+                  value={msg.author_id ? (scrittoDa ?? 'utente senza profilo') : 'pannello, senza autore'} />
+              )}
               <Field icon={MessageSquare} label="Tipo" value={typeLabel[t]} />
               <Field icon={MapPin} label="Posizione" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : '—'} />
               <Field icon={CalendarDays} label="Creato il" value={new Date(msg.created_at).toLocaleString('it-IT')} />
