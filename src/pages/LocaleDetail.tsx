@@ -11,6 +11,7 @@ import {
 import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 import { StilePosto } from '../components/StilePosto'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -64,7 +65,7 @@ export default function LocaleDetail() {
     cerchio.current = L.circle([l.lat!, l.lon!], { radius: l.raggio_m!, color: '#4f46e5', weight: 1.5, fillOpacity: 0.08 }).addTo(m)
     const sposta = (la: number, lo: number) => aggiorna({ lat: +la.toFixed(6), lon: +lo.toFixed(6) })
     segno.current.on('dragend', (e: any) => { const p = e.target.getLatLng(); sposta(p.lat, p.lng) })
-    m.on('click', (e: L.LeafletMouseEvent) => sposta(e.latlng.lat, e.latlng.lng))
+    suClicSingolo(m, (e: L.LeafletMouseEvent) => sposta(e.latlng.lat, e.latlng.lng))
     mappa.current = m
     return () => { m.remove(); mappa.current = null }
   }, [caricamento])

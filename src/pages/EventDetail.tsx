@@ -9,6 +9,7 @@ import { useToast } from '../components/Toast'
 import { SKIN_GRUPPI, type TemaLocale } from '../lib/locali'
 import { StilePosto } from '../components/StilePosto'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 const CATEGORIES = ['Musica', 'Sport', 'Arte', 'Food', 'Cultura', 'Mercato', 'Teatro', 'Cinema', 'Festival', 'Altro']
 const STATUSES = [
@@ -72,7 +73,7 @@ export default function EventDetail() {
       })
     }
 
-    map.on('click', (e: L.LeafletMouseEvent) => {
+    suClicSingolo(map, (e: L.LeafletMouseEvent) => {
       const { lat: la, lng: lo } = e.latlng
       setLat(la.toFixed(6)); setLng(lo.toFixed(6))
       if (markerRef.current) {

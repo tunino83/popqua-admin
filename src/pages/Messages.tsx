@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { MessaggioRapido, type PuntoMappa } from '../components/MessaggioRapido'
 import { esc, safeUrl } from '../lib/escapeHtml'
 import { TabellaDati, useTabella } from '../components/TabellaDati'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 interface AdminMessage {
   id: string
@@ -221,7 +222,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       /* Un clic sul vuoto scrive li'. Sui segnaposti esistenti no: quelli
          aprono il messaggio che c'e' gia', e aprire il modulo di scrittura
          sopra il fumetto di un altro sarebbe un inganno. */
-      map.on('click', (e: L.LeafletMouseEvent) => {
+      suClicSingolo(map, (e: L.LeafletMouseEvent) => {
         setPuntoNuovo({ lat: e.latlng.lat, lon: e.latlng.lng })
       })
       const tile = L.tileLayer(OSM_TILES, OSM_OPTIONS)

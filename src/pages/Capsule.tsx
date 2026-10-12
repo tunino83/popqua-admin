@@ -7,6 +7,7 @@ import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { esc } from '../lib/escapeHtml'
 import { createColumnHelper } from '@tanstack/react-table'
 import { TabellaDati, useTabella } from '../components/TabellaDati'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 /* Capsule: messaggi che si vedono da lontano e si aprono sul posto.
  *
@@ -184,7 +185,7 @@ export default function Capsule() {
     livello.current = L.layerGroup().addTo(m)
     cerchi.current = L.layerGroup().addTo(m)
 
-    m.on('click', (e: L.LeafletMouseEvent) => {
+    suClicSingolo(m, (e: L.LeafletMouseEvent) => {
       const b = bozzaRef.current ?? { ...VUOTA }
       setBozza({ ...b, lat: e.latlng.lat, lon: e.latlng.lng })
       setEsito(null)

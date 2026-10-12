@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 /* Dove sono le persone con l'app, e un modo per lasciare messaggi li'.
  *
@@ -106,7 +107,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
     livelloZone.current = L.layerGroup().addTo(m)
 
     if (!soloMappa) {
-      m.on('click', (e: L.LeafletMouseEvent) => {
+      suClicSingolo(m, (e: L.LeafletMouseEvent) => {
         setPunto({ lat: e.latlng.lat, lon: e.latlng.lng })
         setEsito(null)
       })

@@ -5,6 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
+import { suClicSingolo } from '../lib/clicSingolo'
 
 type MessageType = 'message' | 'event' | 'offer'
 
@@ -115,7 +116,7 @@ export default function CreateMessage() {
       markerRef.current = L.marker([la, lo]).addTo(map)
     })
 
-    map.on('click', (e) => {
+    suClicSingolo(map, (e) => {
       const { lat: la, lng: lo } = e.latlng
       setLat(la.toFixed(6))
       setLng(lo.toFixed(6))
