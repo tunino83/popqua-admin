@@ -99,6 +99,9 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
   const [view, setView] = useState<ViewMode>('list')
   /* Il punto toccato sulla mappa: apre il pannello di invio rapido. */
   const [puntoNuovo, setPuntoNuovo] = useState<PuntoMappa | null>(null)
+  /* Il raggio scelto nel pannello di invio: prima il cerchio restava a 300 m
+     qualunque raggio si scegliesse. */
+  const [raggioNuovo, setRaggioNuovo] = useState(300)
   const segnaposto = useRef<L.Marker | null>(null)
   const cerchio = useRef<L.Circle | null>(null)
 
@@ -266,9 +269,9 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     if (!puntoNuovo) return
     segnaposto.current = L.marker([puntoNuovo.lat, puntoNuovo.lon]).addTo(map)
     cerchio.current = L.circle([puntoNuovo.lat, puntoNuovo.lon], {
-      radius: 300, color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.08, dashArray: '6 4',
+      radius: raggioNuovo, color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.08, dashArray: '6 4',
     }).addTo(map)
-  }, [puntoNuovo, view])
+  }, [puntoNuovo, view, raggioNuovo])
 
   useEffect(() => {
     return () => {
@@ -442,6 +445,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
                   punto={puntoNuovo}
                   onChiudi={() => setPuntoNuovo(null)}
                   onFatto={() => setRicarica(n => n + 1)}
+                  onRaggio={setRaggioNuovo}
                 />
               </div>
             )}

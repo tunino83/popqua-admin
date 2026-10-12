@@ -22,10 +22,12 @@ const RAGGI = [100, 300, 500] as const
 
 export interface PuntoMappa { lat: number; lon: number }
 
-export function MessaggioRapido({ punto, onChiudi, onFatto }: {
+export function MessaggioRapido({ punto, onChiudi, onFatto, onRaggio }: {
   punto: PuntoMappa
   onChiudi: () => void
   onFatto?: () => void
+  /* Il raggio scelto, per il cerchio che la mappa disegna intorno al punto. */
+  onRaggio?: (metri: number) => void
 }) {
   const [testo, setTesto] = useState('')
   const [titolo, setTitolo] = useState('')
@@ -33,6 +35,7 @@ export function MessaggioRapido({ punto, onChiudi, onFatto }: {
   const [durata, setDurata] = useState(10080)
   const [anonimo, setAnonimo] = useState(true)
   const [raggio, setRaggio] = useState<(typeof RAGGI)[number]>(300)
+  useEffect(() => { onRaggio?.(raggio) }, [raggio, onRaggio])
   /* Acceso: chi manda un messaggio da qui vuole che qualcuno lo legga.
      Spento, il messaggio viene marcato dimostrativo, che e' l'unico modo
      che il trigger conosce per non avvisare nessuno. */
