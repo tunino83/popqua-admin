@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  flexRender,
-  createColumnHelper,
-} from '@tanstack/react-table'
+import { createColumnHelper } from '@tanstack/react-table'
 import { Trash2, ChevronLeft, ChevronRight, List, Map as MapIcon, Image, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
@@ -15,6 +8,7 @@ import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { supabase } from '../lib/supabase'
 import { MessaggioRapido, type PuntoMappa } from '../components/MessaggioRapido'
 import { esc, safeUrl } from '../lib/escapeHtml'
+import { TabellaDati, useTabella } from '../components/TabellaDati'
 
 interface AdminMessage {
   id: string
@@ -78,6 +72,9 @@ const statusBadge = {
   scheduled: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300',
 }
 const statusLabel = { active: 'Attivo', expired: 'Scaduto', scheduled: 'Programmato' }
+
+const dataBreve = (iso: string) =>
+  new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 const typeBadge: Record<string, string> = {
   message: 'bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300',
@@ -282,9 +279,10 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
   }, [])
 
   const columns = useMemo(() => [
-    columnHelper.display({
+    columnHelper.accessor(r => r.image_url ? 'Con foto' : 'Senza foto', {
       id: 'photo',
-      header: '',
+      header: 'Foto',
+      meta: { filtro: 'scelta' },
       cell: ({ row }) => row.original.image_url
         ? <Image className="w-4 h-4 text-indigo-400" />
         : <span className="w-4 h-4 block" />,
@@ -298,16 +296,19 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       cell: info => <span className="text-gray-600 dark:text-gray-400 max-w-xs truncate block">{info.getValue()}</span>,
     }),
     columnHelper.accessor('username', { header: 'Autore' }),
-    columnHelper.accessor('message_type', {
+    columnHelper.accessor(r => typeLabel[r.message_type ?? 'message'], {
+      id: 'message_type',
       header: 'Tipo',
-      cell: info => {
-        const t = info.getValue() ?? 'message'
+      meta: { filtro: 'scelta' },
+      cell: ({ row }) => {
+        const t = row.original.message_type ?? 'message'
         return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${typeBadge[t]}`}>{typeLabel[t]}</span>
       },
     }),
-    columnHelper.display({
+    columnHelper.accessor(r => statusLabel[getStatus(r)], {
       id: 'status',
       header: 'Stato',
+      meta: { filtro: 'scelta' },
       cell: ({ row }) => {
         const s = getStatus(row.original)
         return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge[s]}`}>{statusLabel[s]}</span>
@@ -315,11 +316,13 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     }),
     columnHelper.accessor('created_at', {
       header: 'Creato il',
-      cell: info => new Date(info.getValue()).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      meta: { testo: r => dataBreve(r.created_at) },
+      cell: info => dataBreve(info.getValue()),
     }),
     columnHelper.display({
       id: 'actions',
       header: 'Azioni',
+      meta: { filtro: false },
       cell: ({ row }) => (
         <button
           onClick={e => { e.stopPropagation(); setData(prev => prev.filter(m => m.id !== row.original.id)) }}
@@ -331,13 +334,11 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     }),
   ], [])
 
-  const table = useReactTable({
-    data: filtered,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    initialState: { pagination: { pageSize: 20 } },
+  const table = useTabella({
+    dati: filtered,
+    colonne: columns,
+    perPagina: 20,
+    ordine: [{ id: 'created_at', desc: true }],
   })
 
   const statusTabs: { key: StatusFilter; label: string }[] = [
@@ -374,7 +375,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 dark:text-gray-400">{filtered.length} messaggi</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{table.getFilteredRowModel().rows.length} messaggi</span>
           <button onClick={() => navigate('/messages/new')}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Nuovo
@@ -395,38 +396,12 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       {/* List view */}
       {view === 'list' && (
         <>
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
             {loading ? (
               <div className="p-12 text-center text-gray-400">Caricamento…</div>
             ) : (
-              <table className="w-full text-sm min-w-[720px]">
-                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                  {table.getHeaderGroups().map(hg => (
-                    <tr key={hg.id}>
-                      {hg.headers.map(h => (
-                        <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          {flexRender(h.column.columnDef.header, h.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {table.getRowModel().rows.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">Nessun messaggio trovato</td></tr>
-                  ) : (
-                    table.getRowModel().rows.map(row => (
-                      <tr key={row.id} onClick={() => navigate(`/messages/${row.original.id}`)} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id} className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <TabellaDati table={table} vuoto="Nessun messaggio trovato" className="min-w-[720px]"
+                onRiga={m => navigate(`/messages/${m.id}`)} />
             )}
           </div>
 

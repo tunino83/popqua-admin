@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { createColumnHelper } from '@tanstack/react-table'
+import { TabellaDati, useTabella } from '../components/TabellaDati'
 
 /* Cosa succede su notifiche e posizione nei telefoni, senza collegarli con
  * un cavo. L'app scrive gli esiti (admin_diagnostica_app): niente
@@ -17,10 +19,50 @@ interface Riga {
 
 const OK = new Set(['token_registrato', 'posizione_aggiornata'])
 
+const quando = (r: Riga) => new Date(r.creato).toLocaleString('it-IT')
+const app = (r: Riga) => [r.piattaforma, r.versione].filter(Boolean).join(' ')
+
+const colonna = createColumnHelper<Riga>()
+const COLONNE = [
+  colonna.accessor('creato', {
+    header: 'Quando',
+    meta: { testo: quando },
+    cell: ({ row }) => <span className="whitespace-nowrap text-gray-600 dark:text-gray-300">{quando(row.original)}</span>,
+  }),
+  colonna.accessor(r => r.username ?? '—', {
+    id: 'username',
+    header: 'Utente',
+    cell: info => <span className="text-gray-900 dark:text-white">{info.getValue()}</span>,
+  }),
+  colonna.accessor('evento', {
+    header: 'Evento',
+    meta: { filtro: 'scelta' },
+    cell: info => (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${OK.has(info.getValue())
+        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+        {info.getValue()}
+      </span>
+    ),
+  }),
+  colonna.accessor(r => r.dettaglio ?? '', {
+    id: 'dettaglio',
+    header: 'Dettaglio',
+    cell: info => <span className="text-gray-600 dark:text-gray-300 break-all">{info.getValue()}</span>,
+  }),
+  colonna.accessor(app, {
+    id: 'app',
+    header: 'App',
+    meta: { filtro: 'scelta' },
+    cell: info => <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">{info.getValue()}</span>,
+  }),
+]
+
 export default function Diagnostica() {
   const [righe, setRighe] = useState<Riga[]>([])
   const [caricando, setCaricando] = useState(true)
   const [errore, setErrore] = useState<string | null>(null)
+  const tabella = useTabella({ dati: righe, colonne: COLONNE, ordine: [{ id: 'creato', desc: true }] })
 
   async function carica() {
     setCaricando(true); setErrore(null)
@@ -54,41 +96,8 @@ export default function Diagnostica() {
       )}
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-            <tr>
-              <th className="px-4 py-2 font-medium">Quando</th>
-              <th className="px-4 py-2 font-medium">Utente</th>
-              <th className="px-4 py-2 font-medium">Evento</th>
-              <th className="px-4 py-2 font-medium">Dettaglio</th>
-              <th className="px-4 py-2 font-medium">App</th>
-            </tr>
-          </thead>
-          <tbody>
-            {righe.length === 0 && !caricando && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400">Nessun evento registrato.</td></tr>
-            )}
-            {righe.map((r, i) => (
-              <tr key={i} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                <td className="px-4 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
-                  {new Date(r.creato).toLocaleString('it-IT')}
-                </td>
-                <td className="px-4 py-2 text-gray-900 dark:text-white">{r.username ?? '—'}</td>
-                <td className="px-4 py-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${OK.has(r.evento)
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
-                    {r.evento}
-                  </span>
-                </td>
-                <td className="px-4 py-2 text-gray-600 dark:text-gray-300 break-all">{r.dettaglio ?? ''}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                  {[r.piattaforma, r.versione].filter(Boolean).join(' ')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TabellaDati table={tabella} compatta
+          vuoto={caricando ? 'Caricamento…' : 'Nessun evento registrato.'} />
       </div>
     </div>
   )

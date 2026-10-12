@@ -5,6 +5,8 @@ import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { esc } from '../lib/escapeHtml'
+import { createColumnHelper } from '@tanstack/react-table'
+import { TabellaDati, useTabella } from '../components/TabellaDati'
 
 /* Capsule: messaggi che si vedono da lontano e si aprono sul posto.
  *
@@ -110,6 +112,43 @@ function iconaLucchetto(colore: string) {
 
 const COLORE_STATO: Record<Capsula['stato'], string> = { attiva: '#d97706', bozza: '#6b7280', archiviata: '#9ca3af' }
 
+const distanze = (c: Capsula) => `👁 ${metri(c.raggio_visibilita)} · 🔓 ${metri(c.raggio_apertura)}`
+const aperture = (c: Capsula) => `${c.aperture}${c.max_aperture ? ` / ${c.max_aperture}` : ''}`
+const condizioni = (c: Capsula) =>
+  [c.ha_parola && '🔑 parola', c.apre_dal && new Date(c.apre_dal) > new Date() && '⏳ a tempo',
+    c.modo_posizione !== 'esatta' && (c.modo_posizione === 'zona' ? '🗺 zona' : '🌡 caldo/freddo')]
+    .filter(Boolean).join(' · ')
+
+const colonna = createColumnHelper<Capsula>()
+const COLONNE = [
+  colonna.accessor('titolo', {
+    header: 'Titolo',
+    cell: info => <span className="text-gray-900 dark:text-white font-medium">{info.getValue()}</span>,
+  }),
+  colonna.accessor('raggio_visibilita', {
+    header: 'Distanze',
+    sortingFn: 'basic',
+    meta: { testo: distanze },
+    cell: ({ row }) => <span className="text-gray-600 dark:text-gray-300 whitespace-nowrap">{distanze(row.original)}</span>,
+  }),
+  colonna.accessor('aperture', {
+    header: 'Aperture',
+    sortingFn: 'basic',
+    meta: { testo: aperture },
+    cell: ({ row }) => <span className="text-gray-600 dark:text-gray-300">{aperture(row.original)}</span>,
+  }),
+  colonna.accessor(condizioni, {
+    id: 'condizioni',
+    header: 'Condizioni',
+    cell: info => <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">{info.getValue() || '—'}</span>,
+  }),
+  colonna.accessor('stato', {
+    header: 'Stato',
+    meta: { filtro: 'scelta' },
+    cell: info => <span className="px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ background: COLORE_STATO[info.getValue()] }}>{info.getValue()}</span>,
+  }),
+]
+
 export default function Capsule() {
   const mapRef     = useRef<HTMLDivElement>(null)
   const mappa      = useRef<L.Map | null>(null)
@@ -121,6 +160,7 @@ export default function Capsule() {
   const [errore, setErrore] = useState<string | null>(null)
   const [esito, setEsito] = useState<string | null>(null)
   const [bozza, setBozza] = useState<Bozza | null>(null)
+  const tabella = useTabella({ dati: capsule, colonne: COLONNE })
   const [salvando, setSalvando] = useState(false)
 
   // Il clic sulla mappa aggiorna la bozza aperta, se ce n'e' una: il
@@ -285,38 +325,10 @@ export default function Capsule() {
           </div>
 
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Titolo</th>
-                  <th className="px-4 py-2 font-medium">Distanze</th>
-                  <th className="px-4 py-2 font-medium">Aperture</th>
-                  <th className="px-4 py-2 font-medium">Condizioni</th>
-                  <th className="px-4 py-2 font-medium">Stato</th>
-                </tr>
-              </thead>
-              <tbody>
-                {capsule.length === 0 && !caricando && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400">Nessuna capsula. Clicca sulla mappa per crearne una.</td></tr>
-                )}
-                {capsule.map(c => (
-                  <tr key={c.id} onClick={() => { setBozza(daCapsula(c)); setEsito(null); mappa.current?.setView([c.lat, c.lon], 15) }}
-                    className={`border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 ${bozza?.id === c.id ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}>
-                    <td className="px-4 py-2 text-gray-900 dark:text-white font-medium">{c.titolo}</td>
-                    <td className="px-4 py-2 text-gray-600 dark:text-gray-300 whitespace-nowrap">👁 {metri(c.raggio_visibilita)} · 🔓 {metri(c.raggio_apertura)}</td>
-                    <td className="px-4 py-2 text-gray-600 dark:text-gray-300">{c.aperture}{c.max_aperture ? ` / ${c.max_aperture}` : ''}</td>
-                    <td className="px-4 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {[c.ha_parola && '🔑 parola', c.apre_dal && new Date(c.apre_dal) > new Date() && '⏳ a tempo',
-                        c.modo_posizione !== 'esatta' && (c.modo_posizione === 'zona' ? '🗺 zona' : '🌡 caldo/freddo')]
-                        .filter(Boolean).join(' · ') || '—'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ background: COLORE_STATO[c.stato] }}>{c.stato}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TabellaDati table={tabella} compatta
+              vuoto={caricando ? 'Caricamento…' : 'Nessuna capsula. Clicca sulla mappa per crearne una.'}
+              onRiga={c => { setBozza(daCapsula(c)); setEsito(null); mappa.current?.setView([c.lat, c.lon], 15) }}
+              classeRiga={c => bozza?.id === c.id ? 'bg-amber-50 dark:bg-amber-900/10' : ''} />
           </div>
         </div>
 

@@ -1,16 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  flexRender,
-  createColumnHelper,
-} from '@tanstack/react-table'
+import { createColumnHelper } from '@tanstack/react-table'
 import { Ban, ChevronLeft, ChevronRight, Search, List, MapPinned } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import UsersMap from './UsersMap'
 import { supabase } from '../lib/supabase'
+import { TabellaDati, useTabella } from '../components/TabellaDati'
 
 interface Profile {
   id: string
@@ -36,6 +30,17 @@ const roleBadge = (role: string | null) => {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+const dataBreve = (iso: string) =>
+  new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+function etichettePiattaforme(p: string[] | undefined) {
+  const e: string[] = []
+  if (p?.includes('web')) e.push('Web')
+  if (p?.includes('android')) e.push('Android')
+  if (p?.includes('ios')) e.push('iOS')
+  return e
+}
 
 /* Elenco e mappa degli utenti nella stessa pagina, a schede. La scheda sta
    nell'indirizzo (?vista=mappa), cosi' si puo' linkare e il tasto indietro
@@ -106,9 +111,10 @@ function ElencoUtenti() {
   }, [])
 
   const columns = useMemo(() => [
-    columnHelper.display({
+    columnHelper.accessor(r => r.avatar_url ? 'Con avatar' : 'Senza avatar', {
       id: 'avatar',
       header: 'Avatar',
+      meta: { filtro: 'scelta' },
       cell: ({ row }) => {
         const u = row.original
         return u.avatar_url ? (
@@ -140,28 +146,26 @@ function ElencoUtenti() {
         )
       },
     }),
-    columnHelper.accessor('role', {
+    columnHelper.accessor(r => r.role ?? 'user', {
+      id: 'role',
       header: 'Ruolo',
+      meta: { filtro: 'scelta' },
       cell: info => (
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleBadge(info.getValue())}`}>
-          {info.getValue() ?? 'user'}
+          {info.getValue()}
         </span>
       ),
     }),
-    columnHelper.accessor('piattaforme', {
+    columnHelper.accessor(r => etichettePiattaforme(r.piattaforme).join(', '), {
+      id: 'piattaforme',
       header: 'Usa',
-      cell: info => {
-        const p = info.getValue() ?? []
-        const mobile = p.some(x => x === 'android' || x === 'ios')
-        const web = p.includes('web')
+      meta: { filtro: 'scelta' },
+      cell: ({ row }) => {
+        const etichette = etichettePiattaforme(row.original.piattaforme)
         /* Vuoto e non "sconosciuto": di chi non e' mai entrato dopo questa
            modifica non sappiamo niente, e inventare una risposta sarebbe
            peggio che ammetterlo. */
-        if (!mobile && !web) return <span className="text-gray-300 dark:text-gray-600">—</span>
-        const etichette: string[] = []
-        if (web) etichette.push('Web')
-        if (p.includes('android')) etichette.push('Android')
-        if (p.includes('ios')) etichette.push('iOS')
+        if (etichette.length === 0) return <span className="text-gray-300 dark:text-gray-600">—</span>
         return (
           <div className="flex flex-wrap gap-1">
             {etichette.map(e => (
@@ -177,11 +181,13 @@ function ElencoUtenti() {
     }),
     columnHelper.accessor('created_at', {
       header: 'Creato il',
-      cell: info => new Date(info.getValue()).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      meta: { testo: r => dataBreve(r.created_at) },
+      cell: info => dataBreve(info.getValue()),
     }),
     columnHelper.display({
       id: 'actions',
       header: 'Azioni',
+      meta: { filtro: false },
       cell: () => (
         <button
           className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-200 transition-colors"
@@ -194,14 +200,12 @@ function ElencoUtenti() {
     }),
   ], [])
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: { globalFilter, pagination: { pageIndex: 0, pageSize } },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+  const table = useTabella({
+    dati: data,
+    colonne: columns,
+    perPagina: pageSize,
+    ordine: [{ id: 'created_at', desc: true }],
+    cercaGlobale: globalFilter,
   })
 
   // Sync pageSize changes
@@ -245,37 +249,12 @@ function ElencoUtenti() {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Caricamento…</div>
         ) : (
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id}>
-                  {hg.headers.map(h => (
-                    <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {table.getRowModel().rows.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">Nessun utente trovato</td></tr>
-              ) : table.getRowModel().rows.map(row => (
-                <tr key={row.id} onClick={() => navigate(`/users/${row.original.id}`)}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TabellaDati table={table} vuoto="Nessun utente trovato" className="min-w-[720px]"
+            onRiga={u => navigate(`/users/${u.id}`)} />
         )}
       </div>
 
