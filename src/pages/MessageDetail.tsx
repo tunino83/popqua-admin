@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, User, CalendarDays, MessageSquare, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, User, CalendarDays, MessageSquare, Image as ImageIcon, Eye } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
@@ -69,6 +69,9 @@ export default function MessageDetail() {
      la moderazione serve sapere chi c'e' dietro. Nessun autore = scritto
      dall'invio rapido del pannello. */
   const [scrittoDa, setScrittoDa] = useState<string | null>(null)
+  /* Contatore anonimo: quante volte e' comparso sullo schermo, una volta
+     per dispositivo. null = non admin (la funzione rifiuta) o errore. */
+  const [letture, setLetture] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -85,6 +88,14 @@ export default function MessageDetail() {
         const { data: p } = await supabase.from('user_profiles').select('username').eq('id', autore).maybeSingle()
         setScrittoDa(p?.username ?? null)
       })
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    supabase.rpc('admin_letture', { p_ids: [id] }).then(({ data, error }) => {
+      if (error) { setLetture(null); return }
+      setLetture(((data ?? []) as { letture: number }[])[0]?.letture ?? 0)
+    })
   }, [id])
 
   useEffect(() => {
@@ -155,6 +166,9 @@ export default function MessageDetail() {
                   value={msg.author_id ? (scrittoDa ?? 'utente senza profilo') : 'pannello, senza autore'} />
               )}
               <Field icon={MessageSquare} label="Tipo" value={typeLabel[t]} />
+              {letture !== null && (
+                <Field icon={Eye} label="Letture (anonime, una per dispositivo)" value={letture.toLocaleString('it-IT')} />
+              )}
               <Field icon={MapPin} label="Posizione" value={coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : '—'} />
               <Field icon={CalendarDays} label="Creato il" value={new Date(msg.created_at).toLocaleString('it-IT')} />
               <Field icon={Clock} label="Visibile dal" value={visibleAt.toLocaleString('it-IT')} />

@@ -7,6 +7,7 @@ import {
 import {
   Users, MessageSquare, CheckCircle, Clock, Maximize2, X,
   CalendarDays, CalendarCheck, FileEdit, XCircle, LayoutDashboard, MapPinned,
+  Eye, Smartphone, DoorOpen,
 } from 'lucide-react'
 import UsersMap from './UsersMap'
 import L from 'leaflet'
@@ -106,6 +107,73 @@ function KpiCard({ label, value, icon: Icon, color, bg, loading }: {
       <div>
         <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
         <p className="text-2xl font-bold text-gray-900 dark:text-white">{loading ? '—' : value.toLocaleString('it-IT')}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── Pubblico: il contatore anonimo ───────────────────────────────────
+/* Chi apre l'app e cosa legge, senza sapere chi: solo somme (migrazione
+   20261014200000_contatore_letture). Aperture = avvii con la bacheca
+   caricata; dispositivi = prime aperture del giorno su un telefono o
+   browser; letture = fogli rimasti sullo schermo, una volta per
+   dispositivo. Numeri indicativi: chi vuole puo' gonfiarli. */
+interface GiornoAperture { giorno: string; aperture: number; dispositivi: number }
+
+function Pubblico() {
+  const [giorni, setGiorni] = useState<GiornoAperture[]>([])
+  const [letture, setLetture] = useState(0)
+  const [lette, setLette] = useState(0)
+  const [pronto, setPronto] = useState(false)
+
+  useEffect(() => {
+    ;(async () => {
+      const [ap, le] = await Promise.all([
+        supabase.rpc('admin_aperture', { p_giorni: 30 }),
+        supabase.rpc('admin_letture'),
+      ])
+      const perGiorno = new Map(((ap.data ?? []) as GiornoAperture[]).map(r => [r.giorno, r]))
+      const serie: GiornoAperture[] = []
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i)
+        const chiave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const r = perGiorno.get(chiave)
+        serie.push({
+          giorno: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+          aperture: r?.aperture ?? 0, dispositivi: r?.dispositivi ?? 0,
+        })
+      }
+      setGiorni(serie)
+      const righe = (le.data ?? []) as { letture: number }[]
+      setLetture(righe.reduce((s, r) => s + r.letture, 0))
+      setLette(righe.filter(r => r.letture > 0).length)
+      setPronto(true)
+    })()
+  }, [])
+
+  const oggi = giorni[giorni.length - 1]
+  const settimana = giorni.slice(-7).reduce((s, g) => s + g.aperture, 0)
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard label="Aperture oggi" value={oggi?.aperture ?? 0} icon={DoorOpen} color="text-indigo-600" bg="bg-indigo-50 dark:bg-indigo-950" loading={!pronto} />
+        <KpiCard label="Dispositivi oggi" value={oggi?.dispositivi ?? 0} icon={Smartphone} color="text-sky-600" bg="bg-sky-50 dark:bg-sky-950" loading={!pronto} />
+        <KpiCard label="Aperture 7 giorni" value={settimana} icon={DoorOpen} color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-950" loading={!pronto} />
+        <KpiCard label={`Letture (${lette.toLocaleString('it-IT')} messaggi letti)`} value={letture} icon={Eye} color="text-amber-600" bg="bg-amber-50 dark:bg-amber-950" loading={!pronto} />
+      </div>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Aperture e dispositivi, ultimi 30 giorni</h2>
+        <p className="text-xs text-gray-400 mb-4">Conteggi anonimi: nessun utente, nessuna posizione. Il conteggio parte dal 14/10.</p>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={giorni} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="giorno" tick={{ fontSize: 10, fill: '#6b7280' }} interval={4} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} /><Legend iconType="circle" iconSize={10} />
+            <Line type="monotone" dataKey="aperture" name="Aperture" stroke="#4f46e5" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="dispositivi" name="Dispositivi" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )
@@ -354,6 +422,13 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {evKpiCards.map(c => <KpiCard key={c.label} {...c} loading={loading} />)}
               </div>
+            </div>
+          )}
+          {/* Pubblico: contatore anonimo, solo admin */}
+          {isAdmin && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Pubblico (anonimo)</p>
+              <Pubblico />
             </div>
           )}
           {/* Mappa globale */}

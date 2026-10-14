@@ -29,6 +29,8 @@ interface AdminMessage {
 interface ParsedMessage extends AdminMessage {
   lat: number | null
   lng: number | null
+  /** Contatore anonimo: quante volte e' comparso sullo schermo (solo admin). */
+  letture: number
 }
 
 type StatusFilter = 'all' | 'active' | 'expired' | 'scheduled'
@@ -136,9 +138,15 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
           if (rows.length < PAGE) break
           from += PAGE
         }
+        /* Le letture: somme anonime, una per dispositivo (admin_letture). */
+        const letture = new Map<string, number>()
+        if (isAdmin) {
+          const { data: righe } = await supabase.rpc('admin_letture')
+          for (const r of (righe ?? []) as { message_id: string; letture: number }[]) letture.set(r.message_id, r.letture)
+        }
         const parsed = all.map(m => {
           const coords = parseLocation(m.location)
-          return { ...m, lat: coords?.lat ?? null, lng: coords?.lng ?? null }
+          return { ...m, lat: coords?.lat ?? null, lng: coords?.lng ?? null, letture: letture.get(m.id) ?? 0 }
         })
 
         // fetch avatars for all unique authors
@@ -327,6 +335,10 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
         const s = getStatus(row.original)
         return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge[s]}`}>{statusLabel[s]}</span>
       },
+    }),
+    columnHelper.accessor('letture', {
+      header: 'Letture',
+      cell: info => <span className="tabular-nums text-gray-700 dark:text-gray-300">{info.getValue().toLocaleString('it-IT')}</span>,
     }),
     columnHelper.accessor('created_at', {
       header: 'Creato il',
