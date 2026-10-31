@@ -81,7 +81,9 @@ export default function MessageDetail() {
     if (!msg || !confermaElimina(msg.title || msg.text)) return
     setEliminando(true)
     try {
-      // Solo gli admin arrivano a questa pagina per i messaggi degli altri.
+      /* Admin o no: la pagina non lo riceve, ma admin_letture risponde solo
+         agli admin, quindi letture !== null vuol dire admin. Chi non lo e'
+         puo' cancellare solo i propri messaggi. */
       const tolti = await eliminaMessaggio(msg.id, letture !== null, msg.author_id ?? undefined)
       if (tolti === 0) { toastError('Messaggio non eliminato.'); return }
       toastSuccess(tolti > 1 ? `Messaggio eliminato, con ${tolti - 1} risposte` : 'Messaggio eliminato')
