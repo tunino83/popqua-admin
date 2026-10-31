@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, User, CalendarDays, MessageSquare, Image as ImageIcon, Eye } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, User, CalendarDays, MessageSquare, Image as ImageIcon, Eye, Trash2 } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
+import { eliminaMessaggio, confermaElimina } from '../lib/eliminaMessaggio'
+import { useToast } from '../components/Toast'
 
 interface MsgDetail {
   id: string
@@ -72,6 +74,24 @@ export default function MessageDetail() {
   /* Contatore anonimo: quante volte e' comparso sullo schermo, una volta
      per dispositivo. null = non admin (la funzione rifiuta) o errore. */
   const [letture, setLetture] = useState<number | null>(null)
+  const { success: toastSuccess, error: toastError } = useToast()
+  const [eliminando, setEliminando] = useState(false)
+
+  async function elimina() {
+    if (!msg || !confermaElimina(msg.title || msg.text)) return
+    setEliminando(true)
+    try {
+      // Solo gli admin arrivano a questa pagina per i messaggi degli altri.
+      const tolti = await eliminaMessaggio(msg.id, letture !== null, msg.author_id ?? undefined)
+      if (tolti === 0) { toastError('Messaggio non eliminato.'); return }
+      toastSuccess(tolti > 1 ? `Messaggio eliminato, con ${tolti - 1} risposte` : 'Messaggio eliminato')
+      navigate('/messages')
+    } catch (err) {
+      toastError(`Errore: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setEliminando(false)
+    }
+  }
   const [loading, setLoading] = useState(true)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
@@ -130,9 +150,15 @@ export default function MessageDetail() {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => navigate('/messages')} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Torna ai messaggi
-      </button>
+      <div className="flex items-center justify-between gap-3">
+        <button onClick={() => navigate('/messages')} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Torna ai messaggi
+        </button>
+        <button onClick={elimina} disabled={eliminando}
+          className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 border border-rose-200 dark:border-rose-900 rounded-xl text-sm font-medium disabled:opacity-50">
+          <Trash2 className="w-4 h-4" />{eliminando ? 'Elimino...' : 'Elimina'}
+        </button>
+      </div>
 
       <div className="grid gap-4 items-start" style={{ gridTemplateColumns: '3fr 2fr' }}>
         {/* Left column: header + details */}

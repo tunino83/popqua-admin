@@ -10,6 +10,8 @@ import { MessaggioRapido, type PuntoMappa } from '../components/MessaggioRapido'
 import { esc, safeUrl } from '../lib/escapeHtml'
 import { TabellaDati, useTabella } from '../components/TabellaDati'
 import { suClicSingolo } from '../lib/clicSingolo'
+import { eliminaMessaggio, confermaElimina } from '../lib/eliminaMessaggio'
+import { useToast } from '../components/Toast'
 
 interface AdminMessage {
   id: string
@@ -95,6 +97,7 @@ function hexToDouble(hex: string): number {
 }
 
 export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId: string }) {
+  const { success: toastSuccess, error: toastError } = useToast()
   const navigate = useNavigate()
   const [data, setData] = useState<ParsedMessage[]>([])
   const [loading, setLoading] = useState(true)
@@ -351,14 +354,28 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       meta: { filtro: false },
       cell: ({ row }) => (
         <button
-          onClick={e => { e.stopPropagation(); setData(prev => prev.filter(m => m.id !== row.original.id)) }}
+          onClick={async e => {
+            e.stopPropagation()
+            /* Prima toglieva la riga solo dallo schermo: ora cancella davvero
+               (lib/eliminaMessaggio), dopo una conferma. */
+            const m = row.original
+            if (!confermaElimina(m.title || m.text)) return
+            try {
+              const tolti = await eliminaMessaggio(m.id, isAdmin, userId)
+              if (tolti === 0) { toastError('Messaggio non eliminato: forse non e\' tuo o non esiste piu\'.'); return }
+              setData(prev => prev.filter(x => x.id !== m.id && (x as { parent_msg_id?: string | null }).parent_msg_id !== m.id))
+              toastSuccess(tolti > 1 ? `Messaggio eliminato, con ${tolti - 1} risposte` : 'Messaggio eliminato')
+            } catch (err) {
+              toastError(`Errore: ${err instanceof Error ? err.message : String(err)}`)
+            }
+          }}
           className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-200 transition-colors"
         >
           <Trash2 className="w-4 h-4" /> Elimina
         </button>
       ),
     }),
-  ], [])
+  ], [isAdmin, userId])
 
   const table = useTabella({
     dati: filtered,
