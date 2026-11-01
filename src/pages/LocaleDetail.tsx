@@ -5,13 +5,14 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import {
-  getLocale, salvaLocale, eliminaLocale, vociVetrina, salvaVetrina, descriviDisponibilita,
+  getLocale, salvaLocale, salvaComeGestore, eliminaLocale, vociVetrina, salvaVetrina, descriviDisponibilita,
   SKIN_GRUPPI, CATEGORIE, tipoDiPosto, GIORNI, type Locale, type Fascia, type VoceVetrina,
 } from '../lib/locali'
 import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 import { StilePosto } from '../components/StilePosto'
 import { suClicSingolo } from '../lib/clicSingolo'
+import { CaricaFile, Gestori, Statistiche } from '../components/PartiLocale'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -30,9 +31,12 @@ const aLocale = (iso: string | null | undefined) => {
 }
 const daLocale = (v: string) => (v ? new Date(v).toISOString() : null)
 
-export default function LocaleDetail() {
+/* `gestore`: chi gestisce il locale (non admin) cambia solo saluto, testi,
+   logo, orari e vetrina; il resto lo vede ma non lo tocca. */
+export default function LocaleDetail({ gestore = false }: { gestore?: boolean }) {
   const { id } = useParams<{ id: string }>()
-  const nuovo = id === 'new'
+  const nuovo = !gestore && id === 'new'
+  const elenco = gestore ? '/miei-locali' : '/locali'
   const navigate = useNavigate()
   const { success: toastSuccess, error: toastError } = useToast()
   const [l, setL] = useState<Partial<Locale>>(VUOTO)
@@ -47,7 +51,7 @@ export default function LocaleDetail() {
   useEffect(() => {
     if (nuovo) return
     Promise.all([getLocale(id!), vociVetrina(id!)])
-      .then(([loc, v]) => { if (!loc) { navigate('/locali'); return } setL(loc); setVoci(v) })
+      .then(([loc, v]) => { if (!loc) { navigate(elenco); return } setL(loc); setVoci(v) })
       .catch(e => toastError(e.message))
       .finally(() => setCaricamento(false))
   }, [id])
@@ -98,10 +102,10 @@ export default function LocaleDetail() {
     if (l.dal && l.al && l.al <= l.dal) { toastError('La fine del periodo è prima dell’inizio'); return }
     setSalvo(true)
     try {
-      const nuovoId = await salvaLocale(l)
+      const nuovoId = gestore ? (await salvaComeGestore(l), id!) : await salvaLocale(l)
       await salvaVetrina(nuovoId, voci)
       toastSuccess('Locale salvato')
-      if (nuovo) navigate(`/locali/${nuovoId}`, { replace: true })
+      if (nuovo) navigate(`${elenco}/${nuovoId}`, { replace: true })
       else { const [loc, v] = await Promise.all([getLocale(nuovoId), vociVetrina(nuovoId)]); if (loc) setL(loc); setVoci(v) }
     } catch (e: any) {
       toastError(e.message)
@@ -120,7 +124,7 @@ export default function LocaleDetail() {
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/locali')} className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+          <button onClick={() => navigate(elenco)} className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -131,7 +135,7 @@ export default function LocaleDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!nuovo && (
+          {!nuovo && !gestore && (
             <button onClick={elimina} className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 border border-rose-200 dark:border-rose-900 rounded-xl text-sm font-medium">
               <Trash2 className="w-4 h-4" />Elimina
             </button>
@@ -144,8 +148,16 @@ export default function LocaleDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
+          {gestore && (
+            <section className={riquadro}>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Il tuo locale</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{l.dove || 'Senza indirizzo'} · raggio {l.raggio_m} m · {l.attivo ? 'attivo' : 'spento'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Qui cambi il saluto, i testi, il logo, gli orari e la vetrina. Posizione, raggio e stile li cura POPQua: scrivici se vanno cambiati.</p>
+            </section>
+          )}
+
           {/* Informazioni */}
-          <section className={riquadro}>
+          {!gestore && <section className={riquadro}>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Informazioni</h2>
             <label className="flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700 dark:text-gray-300">Attivo <span className="text-gray-400">(lo stile si può proporre)</span></span>
@@ -194,7 +206,7 @@ export default function LocaleDetail() {
               </div>
               <div><label className={etichetta}>Raggio (m)</label><input type="number" min={30} max={l.macro ? 20000 : 2000} className={campo} value={l.raggio_m ?? 150} onChange={e => aggiorna({ raggio_m: Number(e.target.value) })} /></div>
             </div>
-          </section>
+          </section>}
 
           {/* Disponibilita' */}
           <section className={riquadro}>
@@ -202,10 +214,10 @@ export default function LocaleDetail() {
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Quando è disponibile</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Senza periodo e senza fasce: sempre. Le fasce che finiscono prima di iniziare passano la mezzanotte (es. 19:00–02:00).</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            {!gestore && <div className="grid grid-cols-2 gap-3">
               <div><label className={etichetta}>Dal (facoltativo)</label><input type="datetime-local" className={campo} value={aLocale(l.dal)} onChange={e => aggiorna({ dal: daLocale(e.target.value) })} /></div>
               <div><label className={etichetta}>Al (facoltativo)</label><input type="datetime-local" className={campo} value={aLocale(l.al)} onChange={e => aggiorna({ al: daLocale(e.target.value) })} /></div>
-            </div>
+            </div>}
             <div className="space-y-3">
               {orari.map((f, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
@@ -227,26 +239,53 @@ export default function LocaleDetail() {
           </section>
 
           {/* Aspetto su misura */}
-          {l.skin === 'custom' && tema.aspetto && (
+          {!gestore && l.skin === 'custom' && tema.aspetto && (
             <section className={riquadro}>
               <div>
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Aspetto su misura</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Tutto lo stile del locale: colori, sfondo, caratteri, come sono fatti i messaggi e il pulsante. Anteprima a destra.</p>
               </div>
               <EditorSuMisura a={tema.aspetto} onChange={a => aggiornaTema({ aspetto: a })} />
+              <div>
+                <label className={etichetta}>Carattere dei titoli da file (.woff2, facoltativo: vince su quello scelto sopra; si scarica solo sul posto)</label>
+                {nuovo ? <p className="text-xs text-gray-400">Salva il locale prima di caricare file.</p>
+                  : <CaricaFile localeId={id!} tipo="font" url={tema.font_url} onUrl={u => aggiornaTema({ font_url: u })} />}
+              </div>
             </section>
           )}
 
           {/* Stile */}
           <section className={riquadro}>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Stile del locale</h2>
-            <StilePosto tema={tema} onTema={aggiornaTema}
+            <StilePosto tema={tema} onTema={aggiornaTema} senzaColore={gestore}
               salutoPredefinito={`Sei da ${l.nome || 'nome'}`} esempioSaluto={`Sei al ${l.nome || 'Diesis'}`} />
+            <div>
+              <label className={etichetta}>Logo (PNG, JPG o WebP quadrato, massimo 512 KB): nell'app prende il posto dell'emoji, e lo vede solo chi è sul posto</label>
+              {nuovo ? <p className="text-xs text-gray-400">Salva il locale prima di caricare il logo.</p>
+                : <CaricaFile localeId={id!} tipo="logo" url={tema.logo_url} onUrl={u => aggiornaTema({ logo_url: u })} />}
+            </div>
           </section>
+
+          {!nuovo && (
+            <section className={riquadro}>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Statistiche</h2>
+              <Statistiche localeId={id!} />
+            </section>
+          )}
+
+          {!nuovo && !gestore && (
+            <section className={riquadro}>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Gestori</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Chi gestisce il locale entra in questo pannello con il suo account e vede solo «I miei locali».</p>
+              </div>
+              <Gestori localeId={id!} />
+            </section>
+          )}
         </div>
 
         <div className="space-y-6">
-          {l.skin === 'custom' && tema.aspetto && (
+          {!gestore && l.skin === 'custom' && tema.aspetto && (
             <section className={`${riquadro} lg:sticky lg:top-0`}>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Anteprima</h2>
               <div className="max-w-xs mx-auto"><AnteprimaSuMisura a={tema.aspetto} nome={l.nome ?? ''} lascia={tema.testi?.lascia ?? ''} /></div>
@@ -254,13 +293,13 @@ export default function LocaleDetail() {
           )}
 
           {/* Posizione */}
-          <section className={riquadro}>
+          {!gestore && <section className={riquadro}>
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Posizione e raggio</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Clic sulla mappa o trascina il segnaposto. {l.lat}, {l.lon}</p>
             </div>
             <div ref={mappaRef} className="h-72 rounded-lg overflow-hidden z-0" />
-          </section>
+          </section>}
 
           {/* Vetrina */}
           <section className={riquadro}>

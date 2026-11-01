@@ -77,6 +77,10 @@ export interface TemaLocale {
   frasi?: string[]
   /** Solo per la skin 'custom'. */
   aspetto?: import('../components/EditorSuMisura').Aspetto
+  /** Il logo del locale (bucket locali/<id>/logo-...), al posto dell'emoji. */
+  logo_url?: string
+  /** Il carattere dei titoli della skin Su misura (locali/<id>/font-....woff2). */
+  font_url?: string
 }
 
 export interface Locale {
@@ -183,4 +187,61 @@ export function descriviDisponibilita(l: Pick<Locale, 'dal' | 'al' | 'orari'>): 
     parti.push(`${g} ${f.dalle}–${f.alle}`)
   }
   return parti.length ? parti.join(' · ') : 'Sempre'
+}
+
+/* ── File del locale: bucket pubblico `locali`, cartella = id ── */
+export async function caricaFileLocale(localeId: string, tipo: 'logo' | 'font', file: File): Promise<string> {
+  const est = tipo === 'font' ? 'woff2' : ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' } as Record<string, string>)[file.type]
+  if (!est) throw new Error('Formato non accettato: PNG, JPG o WebP')
+  if (tipo === 'font' && !file.name.toLowerCase().endsWith('.woff2')) throw new Error('Il carattere deve essere un file .woff2')
+  if (file.size > 512 * 1024) throw new Error('File troppo grande (massimo 512 KB)')
+  // Nome nuovo a ogni caricamento: i telefoni tengono in cache il vecchio.
+  const percorso = `${localeId}/${tipo}-${Date.now()}.${est}`
+  const { error } = await supabase.storage.from('locali').upload(percorso, file, { contentType: tipo === 'font' ? 'font/woff2' : file.type, cacheControl: '31536000' })
+  if (error) throw error
+  return supabase.storage.from('locali').getPublicUrl(percorso).data.publicUrl
+}
+
+/* Il gestore salva solo cio' che gli spetta (gestore_aggiorna_locale). */
+export async function salvaComeGestore(l: Partial<Locale>) {
+  const t = l.tema ?? {}
+  const tema = {
+    saluto: t.saluto ?? null, motto: t.motto ?? null, testi: t.testi ?? null, frasi: t.frasi ?? null,
+    emoji: t.emoji ?? null, logo_url: t.logo_url ?? null,
+  }
+  const { error } = await supabase.rpc('gestore_aggiorna_locale', { p_id: l.id, p_tema: tema, p_orari: l.orari ?? [], p_cambia_orari: true })
+  if (error) throw error
+}
+
+/* I locali di cui si e' gestori. */
+export async function mieiLocali(userId: string): Promise<Locale[]> {
+  const { data: g, error: e1 } = await supabase.from('locali_gestori').select('locale_id').eq('user_id', userId)
+  if (e1) throw e1
+  const ids = (g ?? []).map(x => x.locale_id)
+  if (!ids.length) return []
+  const { data, error } = await supabase.from('locali_admin').select('*').in('id', ids).order('nome')
+  if (error) throw error
+  return (data ?? []) as Locale[]
+}
+
+export interface Gestore { user_id: string; email: string; username: string | null }
+export async function gestori(localeId: string): Promise<Gestore[]> {
+  const { data, error } = await supabase.rpc('admin_gestori', { p_locale: localeId })
+  if (error) throw error
+  return data ?? []
+}
+export async function aggiungiGestore(localeId: string, email: string) {
+  const { error } = await supabase.rpc('admin_aggiungi_gestore', { p_locale: localeId, p_email: email })
+  if (error) throw error
+}
+export async function togliGestore(localeId: string, userId: string) {
+  const { error } = await supabase.rpc('admin_togli_gestore', { p_locale: localeId, p_user: userId })
+  if (error) throw error
+}
+
+export interface GiornoStatistiche { giorno: string; proposte: number; accesi: number; messaggi: number }
+export async function statistiche(localeId: string, giorni = 30): Promise<GiornoStatistiche[]> {
+  const { data, error } = await supabase.rpc('statistiche_locale', { p_id: localeId, p_giorni: giorni })
+  if (error) throw error
+  return data ?? []
 }

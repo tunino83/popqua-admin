@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, MessageSquare, Settings, LogOut, UserCircle, CalendarDays, Activity, Lock, Flag, Store } from 'lucide-react'
+import { LayoutDashboard, Users, MessageSquare, Settings, LogOut, UserCircle, CalendarDays, Activity, Lock, Flag, Store, Utensils } from 'lucide-react'
 
 interface SidebarProps {
   onSignOut: () => void
@@ -11,9 +11,13 @@ interface SidebarProps {
      display da 375 px lasciavano un terzo di pagina al contenuto. */
   aperta?: boolean
   onChiudi?: () => void
+  /** Gestisce almeno un locale. */
+  isGestore?: boolean
+  /** Solo gestore: niente altre voci. */
+  soloGestore?: boolean
 }
 
-export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta = false, onChiudi }: SidebarProps) {
+export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta = false, onChiudi, isGestore = false, soloGestore = false }: SidebarProps) {
   const navItems = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
     { to: `/users/${userId}`, label: 'Il mio profilo', icon: UserCircle, adminOnly: false },
@@ -26,6 +30,9 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
     { to: '/locali', label: 'Locali', icon: Store, adminOnly: true },
     { to: '/settings', label: 'Impostazioni', icon: Settings, adminOnly: true },
   ].filter(item => !item.adminOnly || isAdmin)
+  if (isGestore) navItems.push({ to: '/miei-locali', label: 'I miei locali', icon: Utensils, adminOnly: false })
+  const voci = soloGestore ? navItems.filter(v => v.to === '/miei-locali') : navItems
+  const ruolo = isAdmin ? 'Admin' : soloGestore ? 'Gestore' : 'Premium'
 
   return (
     <>
@@ -47,14 +54,14 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
               ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
               : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
           }`}>
-            {isAdmin ? 'Admin' : 'Premium'}
+            {ruolo}
           </span>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {voci.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -84,7 +91,7 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{username}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{isAdmin ? 'Amministratore' : 'Premium'}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{isAdmin ? 'Amministratore' : ruolo}</p>
           </div>
           <button onClick={onSignOut} title="Esci"
             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors">

@@ -7,24 +7,26 @@ import type { TemaLocale } from '../lib/locali'
 const campo = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white'
 const etichetta = 'block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1'
 
-export function StilePosto({ tema, onTema, salutoPredefinito, esempioSaluto }: {
+export function StilePosto({ tema, onTema, salutoPredefinito, esempioSaluto, senzaColore = false }: {
   tema: TemaLocale
   onTema: (p: Partial<TemaLocale>) => void
   /** Cosa scrive l'app se il saluto resta vuoto. */
   salutoPredefinito: string
   esempioSaluto: string
+  /** Per i gestori: il colore resta all'admin. */
+  senzaColore?: boolean
 }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
         <div><label className={etichetta}>Emoji</label><input className={campo} maxLength={4} value={tema.emoji ?? ''} onChange={e => onTema({ emoji: e.target.value || undefined })} /></div>
-        <div>
+        {!senzaColore && <div>
           <label className={etichetta}>Colore principale (vuoto = quello della skin)</label>
           <div className="flex items-center gap-2">
             <input type="color" value={tema.colori?.signal ?? '#888888'} onChange={e => onTema({ colori: { ...tema.colori, signal: e.target.value } })} className="w-10 h-9 rounded border border-gray-200 dark:border-gray-700" />
             {tema.colori?.signal && <button onClick={() => onTema({ colori: { ...tema.colori, signal: undefined } })} className="text-xs text-gray-500 hover:text-rose-500">togli</button>}
           </div>
-        </div>
+        </div>}
       </div>
       <div>
         <label className={etichetta}>Saluto: la scritta del posto, nella fascia e nella proposta (vuoto = "{salutoPredefinito}")</label>

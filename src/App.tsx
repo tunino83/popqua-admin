@@ -17,6 +17,7 @@ import Capsule from './pages/Capsule'
 import Segnalazioni from './pages/Segnalazioni'
 import Locali from './pages/Locali'
 import LocaleDetail from './pages/LocaleDetail'
+import MieiLocali from './pages/MieiLocali'
 import Login from './pages/Login'
 import { useAuth } from './hooks/useAuth'
 import { ShieldX } from 'lucide-react'
@@ -37,7 +38,7 @@ function NewMessageFab() {
 export default function App() {
   const [darkMode, setDarkMode] = useState(false)
   const [menuAperto, setMenuAperto] = useState(false)
-  const { user, profile, loading, isAdmin, isPremium, signIn, signInWithGoogle, signOut } = useAuth()
+  const { user, profile, loading, isAdmin, isPremium, isGestore, signIn, signInWithGoogle, signOut } = useAuth()
   const userId = profile?.id ?? ''
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function App() {
     return <Login onLogin={signIn} onGoogleLogin={signInWithGoogle} />
   }
 
-  if (!isAdmin && !isPremium) {
+  if (!isAdmin && !isPremium && !isGestore) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
@@ -79,14 +80,25 @@ export default function App() {
     )
   }
 
+  /* Chi gestisce un locale e non e' admin ne' premium vede solo i suoi locali. */
+  const soloGestore = isGestore && !isAdmin && !isPremium
+
   return (
     <div>
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
         <Sidebar onSignOut={signOut} username={profile?.username ?? user.email ?? 'Admin'} isAdmin={isAdmin} userId={userId}
+          isGestore={isGestore} soloGestore={soloGestore}
           aperta={menuAperto} onChiudi={() => setMenuAperto(false)} />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header darkMode={darkMode} onToggleDark={() => setDarkMode(!darkMode)} onApriMenu={() => setMenuAperto(true)} />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            {soloGestore ? (
+              <Routes>
+                <Route path="/miei-locali" element={<MieiLocali userId={userId} />} />
+                <Route path="/miei-locali/:id" element={<LocaleDetail gestore />} />
+                <Route path="*" element={<Navigate to="/miei-locali" replace />} />
+              </Routes>
+            ) : <>
             <NewMessageFab />
             <Routes>
               <Route path="/" element={<Dashboard isAdmin={isAdmin} userId={userId} />} />
@@ -106,7 +118,10 @@ export default function App() {
               {isAdmin && <Route path="/events/new" element={<EventDetail />} />}
               {isAdmin && <Route path="/events/:id" element={<EventDetail />} />}
               <Route path="/settings" element={<Settings />} />
+              {isGestore && <Route path="/miei-locali" element={<MieiLocali userId={userId} />} />}
+              {isGestore && <Route path="/miei-locali/:id" element={<LocaleDetail gestore={!isAdmin} />} />}
             </Routes>
+            </>}
           </main>
         </div>
       </div>
