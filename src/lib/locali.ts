@@ -15,7 +15,8 @@ export const SKIN_GRUPPI: { gruppo: string; skin: { id: string; nome: string }[]
   ] },
   { gruppo: 'Locali', skin: [
     { id: 'locali', nome: 'Bar e pub' },
-    { id: 'ristorante', nome: 'Ristorante e pizzeria' },
+    { id: 'ristorante', nome: 'Ristorante' },
+    { id: 'pizzeria', nome: 'Pizzeria' },
     { id: 'diesis', nome: 'Diesis (disegnata a mano)' },
   ] },
   { gruppo: 'Scuola e università', skin: [
@@ -38,7 +39,7 @@ export const CATEGORIE = [
     { id: 'palestra', nome: 'Palestra', skin: 'palestra', emoji: '🏋️' },
   ] },
   { nome: 'Locali', tipi: [
-    { id: 'pizzeria', nome: 'Pizzeria', skin: 'ristorante', emoji: '🍕' },
+    { id: 'pizzeria', nome: 'Pizzeria', skin: 'pizzeria', emoji: '🍕' },
     { id: 'ristorante', nome: 'Ristorante', skin: 'ristorante', emoji: '🍽️' },
     { id: 'bar', nome: 'Bar', skin: 'locali', emoji: '☕' },
     { id: 'pub', nome: 'Pub', skin: 'locali', emoji: '🍺' },
