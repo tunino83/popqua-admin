@@ -239,7 +239,7 @@ export async function togliGestore(localeId: string, userId: string) {
   if (error) throw error
 }
 
-export interface GiornoStatistiche { giorno: string; proposte: number; accesi: number; messaggi: number }
+export interface GiornoStatistiche { giorno: string; proposte: number; accesi: number; qr: number; messaggi: number }
 export async function statistiche(localeId: string, giorni = 30): Promise<GiornoStatistiche[]> {
   const { data, error } = await supabase.rpc('statistiche_locale', { p_id: localeId, p_giorni: giorni })
   if (error) throw error

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Upload, X, UserPlus } from 'lucide-react'
+import { Upload, X, UserPlus, Printer, Download } from 'lucide-react'
+import QRCode from 'qrcode'
 import {
   caricaFileLocale, gestori, aggiungiGestore, togliGestore, statistiche,
-  type Gestore, type GiornoStatistiche,
+  type Gestore, type GiornoStatistiche, type Locale,
 } from '../lib/locali'
 import { useToast } from './Toast'
 
@@ -81,13 +82,13 @@ export function Statistiche({ localeId }: { localeId: string }) {
   const [giorni, setGiorni] = useState<GiornoStatistiche[] | null>(null)
   useEffect(() => { statistiche(localeId, 30).then(setGiorni).catch(e => toastError(e.message)) }, [localeId])
   if (!giorni) return <p className="text-xs text-gray-400">Caricamento…</p>
-  const somma = (k: 'proposte' | 'accesi' | 'messaggi', n: number) => giorni.slice(0, n).reduce((a, g) => a + g[k], 0)
+  const somma = (k: 'proposte' | 'accesi' | 'qr' | 'messaggi', n: number) => giorni.slice(0, n).reduce((a, g) => a + g[k], 0)
   const massimo = Math.max(1, ...giorni.map(g => Math.max(g.proposte, g.messaggi)))
   const recenti = [...giorni].slice(0, 14).reverse()
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        {([['proposte', 'Passaggi', 'stile proposto'], ['accesi', 'Stile acceso', 'hanno detto sì'], ['messaggi', 'Messaggi', 'scritti lì']] as const).map(([k, nome, nota]) => (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {([['proposte', 'Passaggi', 'stile proposto'], ['accesi', 'Stile acceso', 'hanno detto sì'], ['qr', 'QR', 'scansioni'], ['messaggi', 'Messaggi', 'scritti lì']] as const).map(([k, nome, nota]) => (
           <div key={k} className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
             <p className="text-xs text-gray-500 dark:text-gray-400">{nome}</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{somma(k, 7)}</p>
@@ -108,6 +109,58 @@ export function Statistiche({ localeId }: { localeId: string }) {
         </div>
       </div>
       <p className="text-[11px] text-gray-400">Solo numeri: l'app non dice chi è passato. I passaggi contano una proposta per apertura dell'app.</p>
+    </div>
+  )
+}
+
+/* Il QR del locale: popqua.it/l/<id>. Chi lo inquadra al tavolo o alla
+   cassa si ritrova nell'app con lo stile del locale gia' acceso (se e'
+   davvero li': lo conferma la posizione). */
+export const linkQr = (id: string) => `https://popqua.it/l/${id}`
+
+const esc = (t: string) => t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+
+export function CartelloQR({ locale }: { locale: Partial<Locale> & { id: string } }) {
+  const [qr, setQr] = useState<string | null>(null)
+  const url = linkQr(locale.id)
+  useEffect(() => {
+    QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 1024, color: { dark: '#17150F', light: '#FFFFFF' } }).then(setQr)
+  }, [url])
+  const saluto = locale.tema?.saluto || `Sei da ${locale.nome ?? ''}`
+
+  function stampa() {
+    if (!qr) return
+    const w = window.open('', '_blank')
+    if (!w) return
+    const simbolo = locale.tema?.logo_url
+      ? `<img src="${esc(locale.tema.logo_url)}" style="width:22mm;height:22mm;object-fit:contain">`
+      : `<div style="font-size:18mm;line-height:1">${esc(locale.tema?.emoji || '★')}</div>`
+    // Quattro cartelli A6 su un A4, da ritagliare.
+    const cartello = `<div class="c">${simbolo}<h1>${esc(locale.nome ?? '')}</h1><p class="s">Lascia un messaggio qui</p>
+      <img class="q" src="${qr}"><p class="i">Inquadra con la fotocamera.<br>Chi passa di qui lo leggerà.</p><p class="m">POPQua · popqua.it</p></div>`
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>QR ${esc(locale.nome ?? '')}</title><style>
+      @page { size: A4; margin: 0 }
+      body { margin: 0; font-family: system-ui, sans-serif; color: #17150F }
+      .f { display: grid; grid-template-columns: 105mm 105mm; grid-template-rows: 148mm 148mm }
+      .c { box-sizing: border-box; border: 0.2mm dashed #bbb; padding: 9mm 8mm; display: flex; flex-direction: column; align-items: center; text-align: center }
+      h1 { margin: 3mm 0 0; font-size: 7mm } .s { margin: 1mm 0 4mm; font-size: 5mm; font-weight: 700; color: #DD5E45 }
+      .q { width: 62mm; height: 62mm } .i { margin: 4mm 0 0; font-size: 3.6mm; line-height: 1.35 } .m { margin: auto 0 0; font-size: 3.2mm; color: #666 }
+    </style></head><body><div class="f">${cartello.repeat(4)}</div><script>window.onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`)
+    w.document.close()
+  }
+
+  return (
+    <div className="flex gap-4 items-start flex-wrap">
+      {qr ? <img src={qr} alt={`QR di ${locale.nome}`} className="w-32 h-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-white" />
+        : <div className="w-32 h-32 rounded-lg bg-gray-100 dark:bg-gray-800" />}
+      <div className="flex-1 min-w-[180px] space-y-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400">Da mettere sui tavoli o alla cassa. Chi lo inquadra ed è nel raggio del locale si ritrova nell'app con «{saluto}» già acceso. Le scansioni compaiono nelle statistiche.</p>
+        <p className="text-[11px] text-gray-400 break-all">{url}</p>
+        <div className="flex gap-3">
+          <button onClick={stampa} disabled={!qr} className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 disabled:opacity-50"><Printer className="w-4 h-4" />Stampa 4 cartelli (A4)</button>
+          {qr && <a href={qr} download={`qr-${(locale.nome ?? 'locale').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`} className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"><Download className="w-4 h-4" />PNG</a>}
+        </div>
+      </div>
     </div>
   )
 }

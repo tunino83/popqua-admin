@@ -12,7 +12,7 @@ import { useToast } from '../components/Toast'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 import { StilePosto } from '../components/StilePosto'
 import { suClicSingolo } from '../lib/clicSingolo'
-import { CaricaFile, Gestori, Statistiche } from '../components/PartiLocale'
+import { CaricaFile, CartelloQR, Gestori, Statistiche } from '../components/PartiLocale'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -265,6 +265,13 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
                 : <CaricaFile localeId={id!} tipo="logo" url={tema.logo_url} onUrl={u => aggiornaTema({ logo_url: u })} />}
             </div>
           </section>
+
+          {!nuovo && (
+            <section className={riquadro}>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">QR per i tavoli</h2>
+              <CartelloQR locale={{ ...l, id: id! }} />
+            </section>
+          )}
 
           {!nuovo && (
             <section className={riquadro}>
