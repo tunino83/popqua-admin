@@ -25,10 +25,10 @@ export default function Locali() {
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Locali</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Locali</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Chi si avvicina vede la proposta di usare lo stile del locale, solo quando è attivo e aperto.</p>
         </div>
-        <button onClick={() => navigate('/locali/new')} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm">
+        <button onClick={() => navigate('/locali/new')} className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg">
           <Plus className="w-4 h-4" />Nuovo locale
         </button>
       </div>
@@ -44,8 +44,8 @@ export default function Locali() {
           return (
             <div key={l.id} className="flex items-center gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
               <button onClick={() => navigate(`/locali/${l.id}`)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                <span className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-xl">
-                  {l.tema?.emoji || <Store className="w-5 h-5 text-indigo-500" />}
+                <span className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center text-xl">
+                  {l.tema?.emoji || <Store className="w-5 h-5 text-brand-500" />}
                 </span>
                 <span className="min-w-0">
                   <span className="block font-semibold text-gray-900 dark:text-white truncate">{l.macro && <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 mr-1.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 align-middle">macro</span>}{l.nome}{l.dove ? <span className="font-normal text-gray-500"> · {l.dove}</span> : null}</span>
@@ -56,7 +56,7 @@ export default function Locali() {
               </button>
               <span className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${stato.c}`}>{stato.t}</span>
               <button role="switch" aria-checked={l.attivo} onClick={() => interruttore(l)} title={l.attivo ? 'Spegni' : 'Accendi'}
-                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${l.attivo ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${l.attivo ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
                 <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${l.attivo ? 'left-[22px]' : 'left-0.5'}`} />
               </button>
             </div>

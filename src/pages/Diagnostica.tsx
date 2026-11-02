@@ -78,7 +78,7 @@ export default function Diagnostica() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Diagnostica app</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Diagnostica app</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Esiti di notifiche e posizione inviati dai telefoni negli ultimi 30 giorni.
           </p>
@@ -95,7 +95,7 @@ export default function Diagnostica() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-x-auto">
         <TabellaDati table={tabella} compatta
           vuoto={caricando ? 'Caricamento…' : 'Nessun evento registrato.'} />
       </div>

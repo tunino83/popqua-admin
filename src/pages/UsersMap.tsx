@@ -252,7 +252,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
   }
 
   const totale = zone.reduce((s, z) => s + z.utenti, 0)
-  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500'
 
   return (
     <div className="space-y-4">
@@ -280,12 +280,12 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
       )}
 
       <div className={`grid gap-4 items-start ${soloMappa ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-3'}`}>
-        <div className={`${soloMappa ? '' : 'xl:col-span-2'} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden`}>
+        <div className={`${soloMappa ? '' : 'xl:col-span-2'} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden`}>
           <div ref={mapRef} className={soloMappa ? '' : 'cursor-crosshair'} style={{ height: 'calc(100vh - 260px)', minHeight: 420 }} />
         </div>
 
         {!soloMappa && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5 space-y-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
           {!punto ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {zone.length === 0 && !caricando
@@ -312,7 +312,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
                 <div className="flex gap-2">
                   {RAGGI.map(r => (
                     <button key={r} type="button" onClick={() => setRaggio(r)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition ${raggio === r ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition ${raggio === r ? 'bg-brand-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
                       {r} m
                     </button>
                   ))}
@@ -354,7 +354,7 @@ export default function UsersMap({ soloMappa = false }: { soloMappa?: boolean } 
               {esito && <p className="text-sm text-emerald-600 dark:text-emerald-400">{esito}</p>}
 
               <button type="submit" disabled={invio || !testo.trim()}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-xl text-sm font-semibold transition">
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg text-sm font-semibold transition">
                 <Send className="w-4 h-4" /> {invio ? 'Pubblicazione…' : 'Pubblica'}
               </button>
             </form>

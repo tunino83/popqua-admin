@@ -1,53 +1,19 @@
-import { useLocation } from 'react-router-dom'
-import { Moon, Sun, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
-function resolveTitle(pathname: string): string {
-  if (pathname === '/') return 'Dashboard'
-  if (pathname === '/users') return 'Utenti'
-  if (pathname.startsWith('/users/')) return 'Dettaglio utente'
-  if (pathname === '/messages') return 'Messaggi'
-  if (pathname.startsWith('/messages/new')) return 'Nuovo messaggio'
-  if (pathname.startsWith('/messages/')) return 'Dettaglio messaggio'
-  if (pathname === '/events') return 'Eventi'
-  if (pathname.startsWith('/events/new')) return 'Nuovo evento'
-  if (pathname.startsWith('/events/')) return 'Dettaglio evento'
-  if (pathname === '/settings') return 'Impostazioni'
-  return 'Admin'
-}
-
-interface HeaderProps {
-  darkMode: boolean
-  onToggleDark: () => void
-  onApriMenu?: () => void
-}
-
-export default function Header({ darkMode, onToggleDark, onApriMenu }: HeaderProps) {
-  const location = useLocation()
-  const title = resolveTitle(location.pathname)
-
+/* Solo su schermi stretti: il pulsante del menu e il marchio. Su schermi
+   larghi non c'e' intestazione: il titolo lo mette ogni pagina
+   (Intestazione in ui.tsx) e tema ed esci stanno in fondo al menu.
+   Prima l'intestazione ripeteva il titolo, sbagliato su cinque pagine
+   ("Admin"), con un'etichetta "Admin" fissa anche per i gestori. */
+export default function Header({ onApriMenu }: { onApriMenu?: () => void }) {
   return (
-    <header className="h-16 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 sm:px-6 gap-3 sm:gap-4 flex-shrink-0">
-      {/* Solo dove la barra laterale e' nascosta. */}
+    <header className="lg:hidden h-14 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-3 flex-shrink-0">
       <button onClick={onApriMenu} aria-label="Apri il menu"
-        className="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        className="p-2 -ml-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
         <Menu className="w-5 h-5" />
       </button>
-
-      <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex-1 truncate">{title}</h1>
-
-      <button
-        onClick={onToggleDark}
-        className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        title={darkMode ? 'Modalità chiara' : 'Modalità scura'}
-      >
-        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
-
-      {/* L'etichetta del ruolo sparisce sul piccolo: e' decorativa, e il
-          titolo della pagina conta di piu'. */}
-      <span className="hidden sm:inline text-sm font-semibold bg-indigo-600 text-white px-3 py-1 rounded-full">
-        Admin
-      </span>
+      <img src="/icona.png" alt="" className="w-7 h-7 rounded-lg" />
+      <span className="font-display text-base font-bold text-gray-900 dark:text-white">POPQua</span>
     </header>
   )
 }

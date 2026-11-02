@@ -13,7 +13,7 @@ export default function MieiLocali({ userId }: { userId: string }) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">I miei locali</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">I miei locali</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">Come si presenta il tuo locale a chi è lì con POPQua.</p>
       </div>
       {!locali && <p className="text-sm text-gray-400">Caricamento…</p>}
@@ -21,7 +21,7 @@ export default function MieiLocali({ userId }: { userId: string }) {
       <div className="grid gap-3">
         {locali?.map(l => (
           <Link key={l.id} to={`/miei-locali/${l.id}`}
-            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700">
+            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl hover:border-brand-300 dark:hover:border-brand-700">
             {l.tema?.logo_url
               ? <img src={l.tema.logo_url} alt="" className="w-10 h-10 object-contain rounded-lg" />
               : <span className="text-2xl w-10 text-center" aria-hidden>{l.tema?.emoji || '★'}</span>}

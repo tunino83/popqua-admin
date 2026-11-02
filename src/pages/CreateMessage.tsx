@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { suClicSingolo } from '../lib/clicSingolo'
+import { Interruttore } from '../components/ui'
 
 type MessageType = 'message' | 'event' | 'offer'
 
@@ -231,8 +232,8 @@ export default function CreateMessage() {
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500'
-  const cardCls  = 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5 space-y-4'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500'
+  const cardCls  = 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4'
 
   return (
     <div className="space-y-4">
@@ -241,7 +242,7 @@ export default function CreateMessage() {
           className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" /> Torna ai messaggi
         </button>
-        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Nuovo messaggio</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nuovo messaggio</h1>
       </div>
 
       {success && (
@@ -301,13 +302,7 @@ export default function CreateMessage() {
                 Pubblicato come <span className="font-semibold text-gray-700 dark:text-gray-300">{adminProfile.username}</span>
               </p>
             )}
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <div onClick={() => setIsAnonymous(a => !a)}
-                className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${isAnonymous ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isAnonymous ? 'translate-x-5' : 'translate-x-1'}`} />
-              </div>
-              <span className="text-sm text-gray-700 dark:text-gray-300">Anonimo</span>
-            </label>
+            <Interruttore acceso={isAnonymous} onCambia={setIsAnonymous} etichetta="Anonimo" nota="Il nome non compare sul messaggio." />
           </div>
 
           {/* Timing */}
@@ -316,14 +311,14 @@ export default function CreateMessage() {
 
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                Ritardo visibilità — <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                Ritardo visibilità — <span className="text-brand-600 dark:text-brand-400 font-semibold">
                   {DELAY_OPTIONS.find(d => d.value === delaySeconds)?.label ?? `${delaySeconds}s`}
                 </span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {DELAY_OPTIONS.map(o => (
                   <button key={o.value} type="button" onClick={() => setDelaySeconds(o.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${delaySeconds === o.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${delaySeconds === o.value ? 'bg-brand-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                     {o.label}
                   </button>
                 ))}
@@ -372,13 +367,13 @@ export default function CreateMessage() {
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Posizione {!isGlobal && <span className="text-red-500">*</span>}
               </h2>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div onClick={() => setIsGlobal(g => !g)}
-                  className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${isGlobal ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isGlobal ? 'translate-x-5' : 'translate-x-1'}`} />
-                </div>
+              <button type="button" role="switch" aria-checked={isGlobal} onClick={() => setIsGlobal(g => !g)}
+                className="flex items-center gap-2 select-none">
+                <span className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${isGlobal ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isGlobal ? 'translate-x-5' : 'translate-x-1'}`} />
+                </span>
                 <span className="text-sm text-gray-700 dark:text-gray-300">Globale</span>
-              </label>
+              </button>
             </div>
             {isGlobal ? (
               <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
@@ -431,7 +426,7 @@ export default function CreateMessage() {
               </div>
             ) : (
               <div onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-10 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-all">
+                className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-10 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/10 transition-all">
                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {isUploading ? 'Caricamento…' : 'Clicca per caricare un\'immagine'}
@@ -461,7 +456,7 @@ export default function CreateMessage() {
           {/* Submit */}
           <button type="submit"
             disabled={isSubmitting || !text.trim() || (!isGlobal && !hasLocation) || (needsTitle && !title.trim())}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all shadow-sm">
+            className="w-full flex items-center justify-center gap-2 py-3 bg-brand-600 hover:bg-brand-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all">
             <Send className="w-4 h-4" />
             {isSubmitting ? 'Creazione…' : 'Crea messaggio'}
           </button>

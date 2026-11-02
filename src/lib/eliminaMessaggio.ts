@@ -18,8 +18,15 @@ export async function eliminaMessaggio(id: string, isAdmin: boolean, userId?: st
   return data?.length ?? 0
 }
 
-/* La domanda prima di cancellare: cosa si cancella, e che non si torna indietro. */
-export function confermaElimina(testo: string | null | undefined): boolean {
-  const anteprima = (testo ?? '').trim().slice(0, 80)
-  return window.confirm(`Eliminare questo messaggio${anteprima ? ` ("${anteprima}${(testo ?? '').length > 80 ? '...' : ''}")` : ''} e le sue risposte?\nNon si puo' annullare.`)
+/* La domanda prima di cancellare: cosa si cancella, e che non si torna
+   indietro. Va passata a conferma() (useConferma). */
+export function richiestaElimina(testo: string | null | undefined) {
+  const t = (testo ?? '').trim()
+  const anteprima = t.length > 80 ? `${t.slice(0, 80)}…` : t
+  return {
+    titolo: 'Eliminare il messaggio?',
+    testo: `${anteprima ? `«${anteprima}» e le sue risposte. ` : 'Con le sue risposte. '}Non si può annullare.`,
+    conferma: 'Elimina',
+    pericolo: true,
+  }
 }

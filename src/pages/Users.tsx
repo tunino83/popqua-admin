@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Ban, ChevronLeft, ChevronRight, Search, List, MapPinned } from 'lucide-react'
+import { Ban, Search, List, MapPinned } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import UsersMap from './UsersMap'
 import { supabase } from '../lib/supabase'
-import { TabellaDati, useTabella } from '../components/TabellaDati'
+import { TabellaDati, useTabella, Paginazione } from '../components/TabellaDati'
+import { Intestazione } from '../components/ui'
 
 interface Profile {
   id: string
@@ -25,8 +26,8 @@ const columnHelper = createColumnHelper<Profile>()
 
 const roleBadge = (role: string | null) => {
   if (role === 'admin')   return 'bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300'
-  if (role === 'premium') return 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
-  return 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
+  if (role === 'premium') return 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300'
+  return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
@@ -62,7 +63,7 @@ export default function Users() {
           <button key={id}
             onClick={() => setParams(id === 'mappa' ? { vista: 'mappa' } : {})}
             className={`flex items-center gap-2 px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${vista === id
-              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              ? 'border-brand-600 text-brand-600 dark:text-brand-400'
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}>
             <Icon className="w-4 h-4" /> {label}
           </button>
@@ -78,7 +79,7 @@ function ElencoUtenti() {
   const [data, setData]           = useState<Profile[]>([])
   const [loading, setLoading]     = useState(true)
   const [globalFilter, setGlobalFilter] = useState('')
-  const [pageSize, setPageSize]   = useState(25)
+  const pageSize = 25
 
   useEffect(() => {
     async function load() {
@@ -120,7 +121,7 @@ function ElencoUtenti() {
         return u.avatar_url ? (
           <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-sm">
+          <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-sm">
             {u.username?.[0]?.toUpperCase() ?? '?'}
           </div>
         )
@@ -140,7 +141,7 @@ function ElencoUtenti() {
         return (
           <button type="button" title="Copia"
             onClick={e => { e.stopPropagation(); navigator.clipboard?.writeText(v).catch(() => {}) }}
-            className="text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+            className="text-sm text-gray-600 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
             {v}
           </button>
         )
@@ -208,17 +209,12 @@ function ElencoUtenti() {
     cercaGlobale: globalFilter,
   })
 
-  // Sync pageSize changes
-  useEffect(() => {
-    table.setPageSize(pageSize)
-  }, [pageSize])
 
   const totalFiltered = table.getFilteredRowModel().rows.length
-  const { pageIndex } = table.getState().pagination
-  const pageCount = table.getPageCount()
 
   return (
     <div className="space-y-4">
+      <Intestazione titolo="Utenti" sottotitolo={`${data.length} iscritti`} />
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
@@ -228,28 +224,16 @@ function ElencoUtenti() {
             value={globalFilter}
             onChange={e => setGlobalFilter(e.target.value)}
             placeholder="Cerca per username o email…"
-            className="pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56"
+            className="pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"
           />
         </div>
         <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
           {totalFiltered} utenti
         </span>
-        {/* Per-page */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <span>Righe per pagina:</span>
-          <div className="flex gap-1">
-            {PAGE_SIZE_OPTIONS.map(n => (
-              <button key={n} onClick={() => setPageSize(n)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${pageSize === n ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-x-auto">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Caricamento…</div>
         ) : (
@@ -258,30 +242,7 @@ function ElencoUtenti() {
         )}
       </div>
 
-      {/* Pagination — centrata, sopra il FAB */}
-      <div className="flex items-center justify-center gap-3 pb-16 text-sm text-gray-600 dark:text-gray-400">
-        <button onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs font-medium">
-          «
-        </button>
-        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}
-          className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        <span className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold min-w-[80px] text-center">
-          {pageIndex + 1} / {pageCount || 1}
-        </span>
-
-        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}
-          className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-        <button onClick={() => table.setPageIndex(pageCount - 1)} disabled={!table.getCanNextPage()}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs font-medium">
-          »
-        </button>
-      </div>
+      <Paginazione table={table} scelte={PAGE_SIZE_OPTIONS} />
     </div>
   )
 }

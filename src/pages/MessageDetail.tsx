@@ -5,8 +5,9 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
-import { eliminaMessaggio, confermaElimina } from '../lib/eliminaMessaggio'
+import { eliminaMessaggio, richiestaElimina } from '../lib/eliminaMessaggio'
 import { useToast } from '../components/Toast'
+import { useConferma } from '../components/ui'
 
 interface MsgDetail {
   id: string
@@ -64,6 +65,7 @@ function Field({ label, value, icon: Icon }: { label: string; value: React.React
 }
 
 export default function MessageDetail() {
+  const conferma = useConferma()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [msg, setMsg] = useState<MsgDetail | null>(null)
@@ -78,7 +80,7 @@ export default function MessageDetail() {
   const [eliminando, setEliminando] = useState(false)
 
   async function elimina() {
-    if (!msg || !confermaElimina(msg.title || msg.text)) return
+    if (!msg || !(await conferma(richiestaElimina(msg.title || msg.text)))) return
     setEliminando(true)
     try {
       /* Admin o no: la pagina non lo riceve, ma admin_letture risponde solo
@@ -128,7 +130,7 @@ export default function MessageDetail() {
     const map = L.map(mapRef.current).setView([coords.lat, coords.lng], 14)
     mapInstanceRef.current = map
     L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(map)
-    L.circleMarker([coords.lat, coords.lng], { radius: 10, color: '#4f46e5', fillColor: '#4f46e5', fillOpacity: 0.6, weight: 2 }).addTo(map)
+    L.circleMarker([coords.lat, coords.lng], { radius: 10, color: '#C4503A', fillColor: '#C4503A', fillOpacity: 0.6, weight: 2 }).addTo(map)
     setTimeout(() => map.invalidateSize(), 50)
 
     return () => { map.remove(); mapInstanceRef.current = null }
@@ -166,13 +168,13 @@ export default function MessageDetail() {
         {/* Left column: header + details */}
         <div className="min-w-0 space-y-4">
           {/* Header */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${typeBadge[t]}`}>{typeLabel[t]}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge[status]}`}>{statusLabel[status]}</span>
                 {msg.image_url && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 flex items-center gap-1">
                     <ImageIcon className="w-3 h-3" /> Foto
                   </span>
                 )}
@@ -184,7 +186,7 @@ export default function MessageDetail() {
           </div>
 
           {/* Details */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-5">Dettagli</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Field icon={User} label="Autore" value={msg.display_nickname ?? msg.username} />
@@ -203,7 +205,7 @@ export default function MessageDetail() {
               <Field icon={Clock} label="Scade il" value={expiresAt.toLocaleString('it-IT')} />
               {msg.place_id && <Field icon={MapPin} label="Place ID" value={<span className="font-mono text-xs">{msg.place_id}</span>} />}
               {msg.author_id && <Field icon={User} label="Author ID" value={
-                <button onClick={() => navigate(`/users/${msg.author_id}`)} className="font-mono text-xs text-indigo-600 dark:text-indigo-400 hover:underline">{msg.author_id}</button>
+                <button onClick={() => navigate(`/users/${msg.author_id}`)} className="font-mono text-xs text-brand-600 dark:text-brand-400 hover:underline">{msg.author_id}</button>
               } />}
             </div>
           </div>
@@ -213,12 +215,12 @@ export default function MessageDetail() {
         {(msg.image_url || coords) && (
           <div className="min-w-0 space-y-4">
             {msg.image_url && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <img src={msg.image_url} alt="Immagine messaggio" className="w-full object-cover" />
               </div>
             )}
             {coords && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <div className="px-4 pt-3 pb-1">
                   <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Posizione</h2>
                 </div>

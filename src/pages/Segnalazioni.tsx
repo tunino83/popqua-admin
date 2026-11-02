@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { RefreshCw, EyeOff, Eye, Trash2, Flag, UserX } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Toast'
+import { useConferma } from '../components/ui'
 
 /* La coda delle segnalazioni.
  *
@@ -37,6 +38,7 @@ function quando(d: string) {
 }
 
 export default function Segnalazioni() {
+  const conferma = useConferma()
   const [righe, setRighe] = useState<Segnalato[]>([])
   const [caricando, setCaricando] = useState(true)
   const [errore, setErrore] = useState<string | null>(null)
@@ -55,13 +57,14 @@ export default function Segnalazioni() {
   useEffect(() => { carica() }, [tutte])
 
   async function modera(m: Segnalato, azione: Azione) {
-    if (azione === 'elimina' && !window.confirm('Eliminare il messaggio? Non si torna indietro.')) return
+    if (azione === 'elimina' && !(await conferma({ titolo: 'Eliminare il messaggio?', testo: 'Non si può annullare.', conferma: 'Elimina', pericolo: true }))) return
     setInCorso(m.id)
     const { error } = await supabase.rpc('admin_modera', { p_message_id: m.id, p_azione: azione })
     setInCorso(null)
     if (error) { erroreToast(error.message); return }
     success(azione === 'ripristina' ? 'Messaggio ripristinato' : azione === 'nascondi' ? 'Messaggio nascosto' : 'Messaggio eliminato')
     carica()
+    window.dispatchEvent(new Event('segnalazioni-cambiate'))
   }
 
   const daDecidere = righe.filter(r => !r.moderazione || new Date(r.ultima_segnalazione) > new Date(r.moderato_il ?? 0)).length
@@ -70,7 +73,7 @@ export default function Segnalazioni() {
     <div className="space-y-4">
       <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Segnalazioni</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Segnalazioni</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {daDecidere === 0 ? 'Niente da decidere.' : `${daDecidere} da decidere.`} Alla terza segnalazione il messaggio sparisce da solo.
           </p>
@@ -104,7 +107,7 @@ export default function Segnalazioni() {
           const scaduto = new Date(m.expires_at) < new Date()
           const nome = m.is_anonymous ? 'Anonimo' : (m.display_nickname || m.username || 'senza nome')
           return (
-            <div key={m.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-4 flex flex-col gap-3">
+            <div key={m.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold">
                   <Flag className="w-3 h-3" /> {m.report_count}

@@ -10,6 +10,7 @@ import { SKIN_GRUPPI, type TemaLocale } from '../lib/locali'
 import { StilePosto } from '../components/StilePosto'
 import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/EditorSuMisura'
 import { suClicSingolo } from '../lib/clicSingolo'
+import { useConferma } from '../components/ui'
 
 const CATEGORIES = ['Musica', 'Sport', 'Arte', 'Food', 'Cultura', 'Mercato', 'Teatro', 'Cinema', 'Festival', 'Altro']
 const STATUSES = [
@@ -19,6 +20,7 @@ const STATUSES = [
 ] as const
 
 export default function EventDetail() {
+  const conferma = useConferma()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isNew = id === 'new'
@@ -96,7 +98,7 @@ export default function EventDetail() {
     const la = parseFloat(lat), lo = parseFloat(lng)
     if (!map || isNaN(la) || isNaN(lo)) return
     if (!cerchioRef.current) {
-      cerchioRef.current = L.circle([la, lo], { radius: event.raggio_m ?? 300, color: '#4f46e5', weight: 1.5, fillOpacity: 0.08 }).addTo(map)
+      cerchioRef.current = L.circle([la, lo], { radius: event.raggio_m ?? 300, color: '#C4503A', weight: 1.5, fillOpacity: 0.08 }).addTo(map)
     } else {
       cerchioRef.current.setLatLng([la, lo]).setRadius(event.raggio_m ?? 300)
     }
@@ -139,7 +141,7 @@ export default function EventDetail() {
   }
 
   async function handleDelete() {
-    if (!confirm('Eliminare questo evento?')) return
+    if (!(await conferma({ titolo: 'Eliminare questo evento?', testo: 'Non si può annullare.', conferma: 'Elimina', pericolo: true }))) return
     const ok = await deleteEvent(id!)
     if (ok) { toastSuccess('Evento eliminato'); navigate('/events') }
     else toastError('Errore durante l\'eliminazione')
@@ -156,14 +158,14 @@ export default function EventDetail() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{isNew ? 'Nuovo evento' : 'Modifica evento'}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{isNew ? 'Nuovo evento' : 'Modifica evento'}</h1>
             {!isNew && <p className="text-xs text-gray-500 dark:text-gray-400">ID: {id?.slice(0, 8)}…</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
           {!isNew && (
             <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm">
-              <Users className="w-4 h-4 text-indigo-500" />
+              <Users className="w-4 h-4 text-brand-500" />
               <span className="font-semibold text-gray-900 dark:text-white">{participants}</span>
               <span className="text-gray-500 dark:text-gray-400 text-xs">partecipanti</span>
             </div>
@@ -173,7 +175,7 @@ export default function EventDetail() {
               <Trash2 className="w-4 h-4" />Elimina
             </button>
           )}
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors">
             <Save className="w-4 h-4" />{saving ? 'Salvataggio…' : 'Salva'}
           </button>
         </div>
@@ -191,7 +193,7 @@ export default function EventDetail() {
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Titolo *</label>
               <input value={event.title ?? ''} onChange={e => setEvent(p => ({ ...p, title: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Titolo evento" />
             </div>
 
@@ -199,7 +201,7 @@ export default function EventDetail() {
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descrizione</label>
               <textarea value={event.description ?? ''} onChange={e => setEvent(p => ({ ...p, description: e.target.value }))}
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                 placeholder="Descrizione…" />
             </div>
 
@@ -207,7 +209,7 @@ export default function EventDetail() {
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Categoria</label>
                 <select value={event.category ?? ''} onChange={e => setEvent(p => ({ ...p, category: e.target.value || null }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                   <option value="">—</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -215,7 +217,7 @@ export default function EventDetail() {
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Stato</label>
                 <select value={event.status ?? 'draft'} onChange={e => setEvent(p => ({ ...p, status: e.target.value as any }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                   {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -235,7 +237,7 @@ export default function EventDetail() {
                     const val = e.target.value.includes('T') && e.target.value.length === 16 ? e.target.value : e.target.value + 'T00:00'
                     setEvent(p => ({ ...p, start_at: new Date(val).toISOString() }))
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 <p className="text-[10px] text-gray-400 mt-0.5">Default ora: 00:00</p>
               </div>
               <div>
@@ -246,7 +248,7 @@ export default function EventDetail() {
                     // Fine sempre alle 23:59
                     setEvent(p => ({ ...p, end_at: new Date(e.target.value + 'T23:59').toISOString() }))
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
                 <p className="text-[10px] text-gray-400 mt-0.5">Fine giornata: 23:59</p>
               </div>
             </div>
@@ -269,7 +271,7 @@ export default function EventDetail() {
                   const skin = e.target.value || null
                   setEvent(p => ({ ...p, skin, ...(skin === 'custom' && !p.tema?.aspetto ? { tema: { ...(p.tema ?? {}), aspetto: structuredClone(PARTENZE.pub.aspetto) } } : {}) }))
                 }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
                   <option value="">Dalla categoria ({skinDaCategoria(event.category).nome})</option>
                   <optgroup label="Bacheca">
                     <option value="giorno">Bacheca (solo saluto ed emoji)</option>
@@ -286,7 +288,7 @@ export default function EventDetail() {
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Raggio (m)</label>
                 <input type="number" min={30} max={2000} value={event.raggio_m ?? 300}
                   onChange={e => setEvent(p => ({ ...p, raggio_m: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
             </div>
             <StilePosto tema={tema} onTema={aggiornaTema}
@@ -306,13 +308,13 @@ export default function EventDetail() {
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email contatto</label>
               <input type="email" value={event.contact_email ?? ''} onChange={e => setEvent(p => ({ ...p, contact_email: e.target.value || null }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="info@evento.it" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Link (sito/biglietti)</label>
               <input type="url" value={event.link ?? ''} onChange={e => setEvent(p => ({ ...p, link: e.target.value || null }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="https://…" />
             </div>
           </div>
@@ -332,7 +334,7 @@ export default function EventDetail() {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-indigo-400 transition-colors">
+              <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-brand-400 transition-colors">
                 <Upload className="w-6 h-6 text-gray-400" />
                 <span className="text-xs text-gray-400">Clicca per caricare</span>
                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -346,19 +348,19 @@ export default function EventDetail() {
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nome luogo</label>
               <input value={event.location_text ?? ''} onChange={e => setEvent(p => ({ ...p, location_text: e.target.value || null }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Es. Piazza del Duomo, Milano" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Latitudine</label>
                 <input value={lat} onChange={e => setLat(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="41.9028" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="41.9028" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Longitudine</label>
                 <input value={lng} onChange={e => setLng(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="12.4964" />
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="12.4964" />
               </div>
             </div>
             <p className="text-xs text-gray-400">Clicca sulla mappa per posizionare l'evento o trascina il marker.</p>

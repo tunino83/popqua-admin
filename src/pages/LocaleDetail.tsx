@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Save, Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
@@ -13,15 +13,18 @@ import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/Edito
 import { StilePosto } from '../components/StilePosto'
 import { suClicSingolo } from '../lib/clicSingolo'
 import { CaricaFile, CartelloQR, Gestori, Statistiche } from '../components/PartiLocale'
+import { useConferma, cls, bottone, Intestazione, Schede } from '../components/ui'
+
+type Scheda = 'riepilogo' | 'info' | 'aspetto' | 'vetrina' | 'gestori'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
   lat: 41.0753, lon: 14.2903,
 }
 
-const riquadro = 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4'
-const campo = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white'
-const etichetta = 'block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1'
+const riquadro = `${cls.riquadro} p-5 space-y-4`
+const campo = cls.campo
+const etichetta = cls.etichetta
 
 /* datetime-local vuole l'ora locale senza fuso. */
 const aLocale = (iso: string | null | undefined) => {
@@ -34,6 +37,7 @@ const daLocale = (v: string) => (v ? new Date(v).toISOString() : null)
 /* `gestore`: chi gestisce il locale (non admin) cambia solo saluto, testi,
    logo, orari e vetrina; il resto lo vede ma non lo tocca. */
 export default function LocaleDetail({ gestore = false }: { gestore?: boolean }) {
+  const conferma = useConferma()
   const { id } = useParams<{ id: string }>()
   const nuovo = !gestore && id === 'new'
   const elenco = gestore ? '/miei-locali' : '/locali'
@@ -43,6 +47,10 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
   const [voci, setVoci] = useState<VoceVetrina[]>([])
   const [caricamento, setCaricamento] = useState(!nuovo)
   const [salvo, setSalvo] = useState(false)
+  /* Com'era all'ultimo caricamento o salvataggio: se e' diverso ci sono
+     modifiche da salvare. */
+  const [base, setBase] = useState('')
+  const [scheda, setScheda] = useState<Scheda>(nuovo ? 'info' : 'riepilogo')
   const mappaRef = useRef<HTMLDivElement>(null)
   const mappa = useRef<L.Map | null>(null)
   const segno = useRef<L.Marker | null>(null)
@@ -51,10 +59,33 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
   useEffect(() => {
     if (nuovo) return
     Promise.all([getLocale(id!), vociVetrina(id!)])
-      .then(([loc, v]) => { if (!loc) { navigate(elenco); return } setL(loc); setVoci(v) })
+      .then(([loc, v]) => { if (!loc) { navigate(elenco); return } setL(loc); setVoci(v); setBase(JSON.stringify([loc, v])) })
       .catch(e => toastError(e.message))
       .finally(() => setCaricamento(false))
   }, [id])
+
+  const sporco = !caricamento && (nuovo ? !!l.nome?.trim() : base !== '' && JSON.stringify([l, voci]) !== base)
+  // Chiudendo o ricaricando la scheda del browser con modifiche in sospeso.
+  useEffect(() => {
+    if (!sporco) return
+    const avvisa = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', avvisa)
+    return () => window.removeEventListener('beforeunload', avvisa)
+  }, [sporco])
+  function annulla() {
+    if (!base) return
+    const [loc, v] = JSON.parse(base); setL(loc); setVoci(v)
+  }
+
+  /* Le schede: prima undici riquadri in fila su due colonne. Il gestore
+     vede per prima cosa i numeri e il QR. */
+  const schede: { id: Scheda; nome: string; conta?: number }[] = [
+    ...(!nuovo ? [{ id: 'riepilogo' as const, nome: gestore ? 'Riepilogo' : 'QR e statistiche' }] : []),
+    { id: 'info', nome: gestore ? 'Orari' : 'Informazioni' },
+    { id: 'aspetto', nome: 'Aspetto' },
+    { id: 'vetrina', nome: 'Vetrina', conta: voci.length },
+    ...(!nuovo && !gestore ? [{ id: 'gestori' as const, nome: 'Gestori' }] : []),
+  ]
 
   const aggiorna = (p: Partial<Locale>) => setL(x => ({ ...x, ...p }))
   const tema = l.tema ?? {}
@@ -62,17 +93,17 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
 
   // La mappa: clic o trascinamento per il punto, il cerchio e' il raggio.
   useEffect(() => {
-    if (caricamento || !mappaRef.current || mappa.current) return
+    if (caricamento || scheda !== 'info' || !mappaRef.current || mappa.current) return
     const m = L.map(mappaRef.current).setView([l.lat!, l.lon!], 16)
     L.tileLayer(OSM_TILES, OSM_OPTIONS).addTo(m)
     segno.current = L.marker([l.lat!, l.lon!], { draggable: true }).addTo(m)
-    cerchio.current = L.circle([l.lat!, l.lon!], { radius: l.raggio_m!, color: '#4f46e5', weight: 1.5, fillOpacity: 0.08 }).addTo(m)
+    cerchio.current = L.circle([l.lat!, l.lon!], { radius: l.raggio_m!, color: '#C4503A', weight: 1.5, fillOpacity: 0.08 }).addTo(m)
     const sposta = (la: number, lo: number) => aggiorna({ lat: +la.toFixed(6), lon: +lo.toFixed(6) })
     segno.current.on('dragend', (e: any) => { const p = e.target.getLatLng(); sposta(p.lat, p.lng) })
     suClicSingolo(m, (e: L.LeafletMouseEvent) => sposta(e.latlng.lat, e.latlng.lng))
     mappa.current = m
-    return () => { m.remove(); mappa.current = null }
-  }, [caricamento])
+    return () => { m.remove(); mappa.current = null; segno.current = null; cerchio.current = null }
+  }, [caricamento, scheda])
 
   useEffect(() => {
     if (!segno.current || !cerchio.current) return
@@ -106,66 +137,61 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
       await salvaVetrina(nuovoId, voci)
       toastSuccess('Locale salvato')
       if (nuovo) navigate(`${elenco}/${nuovoId}`, { replace: true })
-      else { const [loc, v] = await Promise.all([getLocale(nuovoId), vociVetrina(nuovoId)]); if (loc) setL(loc); setVoci(v) }
+      else { const [loc, v] = await Promise.all([getLocale(nuovoId), vociVetrina(nuovoId)]); if (loc) setL(loc); setVoci(v); setBase(JSON.stringify([loc, v])) }
     } catch (e: any) {
       toastError(e.message)
     } finally { setSalvo(false) }
   }
 
   async function elimina() {
-    if (!confirm(`Eliminare ${l.nome} e la sua vetrina?`)) return
+    if (!(await conferma({ titolo: `Eliminare ${l.nome}?`, testo: 'Con la vetrina, i gestori e le statistiche. Non si può annullare.', conferma: 'Elimina', pericolo: true }))) return
     try { await eliminaLocale(id!); toastSuccess('Locale eliminato'); navigate('/locali') }
     catch (e: any) { toastError(e.message) }
   }
 
   if (caricamento) return <div className="text-sm text-gray-400 py-8 text-center">Caricamento…</div>
 
-  return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(elenco)} className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{nuovo ? 'Nuovo locale' : l.nome}</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {l.attivo ? (l.aperto_ora === false ? 'Attivo · fuori orario adesso' : 'Attivo') : 'Spento'} · {descriviDisponibilita({ dal: l.dal ?? null, al: l.al ?? null, orari })}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!nuovo && !gestore && (
-            <button onClick={elimina} className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 border border-rose-200 dark:border-rose-900 rounded-xl text-sm font-medium">
-              <Trash2 className="w-4 h-4" />Elimina
-            </button>
-          )}
-          <button onClick={salva} disabled={salvo} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm">
-            <Save className="w-4 h-4" />{salvo ? 'Salvataggio…' : 'Salva'}
-          </button>
-        </div>
-      </div>
+  const stato = `${l.attivo ? (l.aperto_ora === false ? 'Attivo · fuori orario adesso' : 'Attivo') : 'Spento'} · ${descriviDisponibilita({ dal: l.dal ?? null, al: l.al ?? null, orari })}`
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+  return (
+    <div className="space-y-5 max-w-5xl pb-24">
+      <Intestazione indietro={elenco} titolo={nuovo ? 'Nuovo locale' : l.nome} sottotitolo={stato}
+        azioni={!nuovo && !gestore && <button onClick={elimina} className={bottone('pericolo')}><Trash2 className="w-4 h-4" />Elimina</button>} />
+
+      <Schede schede={schede} attiva={scheda} onScegli={setScheda} />
+
+      {scheda === 'riepilogo' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <section className={riquadro}>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Statistiche</h2>
+            <Statistiche localeId={id!} />
+          </section>
+          <section className={riquadro}>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">QR per i tavoli</h2>
+            <CartelloQR locale={{ ...l, id: id! }} />
+          </section>
           {gestore && (
-            <section className={riquadro}>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Il tuo locale</h2>
+            <section className={`${riquadro} lg:col-span-2`}>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Il tuo locale</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300">{l.dove || 'Senza indirizzo'} · raggio {l.raggio_m} m · {l.attivo ? 'attivo' : 'spento'}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Qui cambi il saluto, i testi, il logo, gli orari e la vetrina. Posizione, raggio e stile li cura POPQua: scrivici se vanno cambiati.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Dalle schede qui sopra cambi orari, vetrina, saluto, testi e logo. Posizione, raggio e stile li cura POPQua: scrivici se vanno cambiati.</p>
             </section>
           )}
+        </div>
+      )}
 
-          {/* Informazioni */}
+      {scheda === 'info' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <div className="space-y-5">
           {!gestore && <section className={riquadro}>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Informazioni</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Informazioni</h2>
             <label className="flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700 dark:text-gray-300">Attivo <span className="text-gray-400">(lo stile si può proporre)</span></span>
-              <input type="checkbox" checked={!!l.attivo} onChange={e => aggiorna({ attivo: e.target.checked })} className="w-5 h-5 accent-indigo-600" />
+              <input type="checkbox" checked={!!l.attivo} onChange={e => aggiorna({ attivo: e.target.checked })} className="w-5 h-5 accent-brand-600" />
             </label>
             <label className="flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700 dark:text-gray-300">Macro locale <span className="text-gray-400">(quartiere, paese, centro commerciale: contiene altri locali; raggio fino a 20 km)</span></span>
-              <input type="checkbox" checked={!!l.macro} onChange={e => aggiorna({ macro: e.target.checked, ...(!e.target.checked && (l.raggio_m ?? 0) > 2000 ? { raggio_m: 2000 } : {}) })} className="w-5 h-5 accent-indigo-600" />
+              <input type="checkbox" checked={!!l.macro} onChange={e => aggiorna({ macro: e.target.checked, ...(!e.target.checked && (l.raggio_m ?? 0) > 2000 ? { raggio_m: 2000 } : {}) })} className="w-5 h-5 accent-brand-600" />
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div><label className={etichetta}>Nome</label><input className={campo} value={l.nome ?? ''} onChange={e => aggiorna({ nome: e.target.value })} /></div>
@@ -207,11 +233,10 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
               <div><label className={etichetta}>Raggio (m)</label><input type="number" min={30} max={l.macro ? 20000 : 2000} className={campo} value={l.raggio_m ?? 150} onChange={e => aggiorna({ raggio_m: Number(e.target.value) })} /></div>
             </div>
           </section>}
-
           {/* Disponibilita' */}
           <section className={riquadro}>
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Quando è disponibile</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Quando è disponibile</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Senza periodo e senza fasce: sempre. Le fasce che finiscono prima di iniziare passano la mezzanotte (es. 19:00–02:00).</p>
             </div>
             {!gestore && <div className="grid grid-cols-2 gap-3">
@@ -224,7 +249,7 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
                   <div className="flex gap-1">
                     {GIORNI.map((g, k) => (
                       <button key={g} type="button" onClick={() => giornoFascia(i, k + 1)}
-                        className={`w-9 py-1 text-xs font-semibold rounded-md ${f.giorni.includes(k + 1) ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700'}`}>{g}</button>
+                        className={`w-9 py-1 text-xs font-semibold rounded-md ${f.giorni.includes(k + 1) ? 'bg-brand-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700'}`}>{g}</button>
                     ))}
                   </div>
                   <input type="time" className={`${campo} w-28`} value={f.dalle} onChange={e => cambiaFascia(i, { dalle: e.target.value })} />
@@ -234,15 +259,42 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
                 </div>
               ))}
               <button onClick={() => aggiorna({ orari: [...orari, { giorni: [1, 2, 3, 4, 5, 6, 7], dalle: '19:00', alle: '23:59' }] })}
-                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"><Plus className="w-4 h-4" />Aggiungi fascia oraria</button>
+                className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"><Plus className="w-4 h-4" />Aggiungi fascia oraria</button>
             </div>
           </section>
+          </div>
+          {!gestore && <div className="space-y-5">
+          {/* Posizione */}
+          {!gestore && <section className={riquadro}>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Posizione e raggio</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Clic sulla mappa o trascina il segnaposto. {l.lat}, {l.lon}</p>
+            </div>
+            <div ref={mappaRef} className="h-72 rounded-lg overflow-hidden z-0" />
+          </section>}
+          </div>}
+        </div>
+      )}
 
+      {scheda === 'aspetto' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <div className="space-y-5">
+          {/* Stile */}
+          <section className={riquadro}>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Stile del locale</h2>
+            <StilePosto tema={tema} onTema={aggiornaTema} senzaColore={gestore}
+              salutoPredefinito={`Sei da ${l.nome || 'nome'}`} esempioSaluto={`Sei al ${l.nome || 'Diesis'}`} />
+            <div>
+              <label className={etichetta}>Logo (PNG, JPG o WebP quadrato, massimo 512 KB): nell'app prende il posto dell'emoji, e lo vede solo chi è sul posto</label>
+              {nuovo ? <p className="text-xs text-gray-400">Salva il locale prima di caricare il logo.</p>
+                : <CaricaFile localeId={id!} tipo="logo" url={tema.logo_url} onUrl={u => aggiornaTema({ logo_url: u })} />}
+            </div>
+          </section>
           {/* Aspetto su misura */}
           {!gestore && l.skin === 'custom' && tema.aspetto && (
             <section className={riquadro}>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Aspetto su misura</h2>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">Aspetto su misura</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Tutto lo stile del locale: colori, sfondo, caratteri, come sono fatti i messaggi e il pulsante. Anteprima a destra.</p>
               </div>
               <EditorSuMisura a={tema.aspetto} onChange={a => aggiornaTema({ aspetto: a })} />
@@ -253,66 +305,25 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
               </div>
             </section>
           )}
-
-          {/* Stile */}
-          <section className={riquadro}>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Stile del locale</h2>
-            <StilePosto tema={tema} onTema={aggiornaTema} senzaColore={gestore}
-              salutoPredefinito={`Sei da ${l.nome || 'nome'}`} esempioSaluto={`Sei al ${l.nome || 'Diesis'}`} />
-            <div>
-              <label className={etichetta}>Logo (PNG, JPG o WebP quadrato, massimo 512 KB): nell'app prende il posto dell'emoji, e lo vede solo chi è sul posto</label>
-              {nuovo ? <p className="text-xs text-gray-400">Salva il locale prima di caricare il logo.</p>
-                : <CaricaFile localeId={id!} tipo="logo" url={tema.logo_url} onUrl={u => aggiornaTema({ logo_url: u })} />}
-            </div>
-          </section>
-
-          {!nuovo && (
-            <section className={riquadro}>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">QR per i tavoli</h2>
-              <CartelloQR locale={{ ...l, id: id! }} />
-            </section>
-          )}
-
-          {!nuovo && (
-            <section className={riquadro}>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Statistiche</h2>
-              <Statistiche localeId={id!} />
-            </section>
-          )}
-
-          {!nuovo && !gestore && (
-            <section className={riquadro}>
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Gestori</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Chi gestisce il locale entra in questo pannello con il suo account e vede solo «I miei locali».</p>
-              </div>
-              <Gestori localeId={id!} />
-            </section>
-          )}
-        </div>
-
-        <div className="space-y-6">
+          </div>
+          <div className="space-y-5 lg:sticky lg:top-0">
           {!gestore && l.skin === 'custom' && tema.aspetto && (
-            <section className={`${riquadro} lg:sticky lg:top-0`}>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Anteprima</h2>
+            <section className={`${riquadro}`}>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Anteprima</h2>
               <div className="max-w-xs mx-auto"><AnteprimaSuMisura a={tema.aspetto} nome={l.nome ?? ''} lascia={tema.testi?.lascia ?? ''} /></div>
             </section>
           )}
+          </div>
+        </div>
+      )}
 
-          {/* Posizione */}
-          {!gestore && <section className={riquadro}>
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Posizione e raggio</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Clic sulla mappa o trascina il segnaposto. {l.lat}, {l.lon}</p>
-            </div>
-            <div ref={mappaRef} className="h-72 rounded-lg overflow-hidden z-0" />
-          </section>}
-
+      {scheda === 'vetrina' && (
+        <div className="max-w-3xl">
           {/* Vetrina */}
           <section className={riquadro}>
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Vetrina (menù, corsi, orari…)</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Le sezioni diventano le schede, le etichette i filtri. Si salva con il pulsante in alto.</p>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Vetrina (menù, corsi, orari…)</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Le sezioni diventano le schede, le etichette i filtri. Si salva con il pulsante Salva in basso.</p>
             </div>
             {voci.map((v, i) => (
               <div key={v.id ?? `n${i}`} className={`p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-2 ${v.disponibile ? '' : 'opacity-60'}`}>
@@ -326,7 +337,7 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
                   <input className={campo} placeholder="Etichette separate da virgola (vegano, della casa…)" value={v.etichette.join(', ')}
                     onChange={e => cambiaVoce(i, { etichette: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} />
                   <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
-                    <input type="checkbox" checked={v.disponibile} onChange={e => cambiaVoce(i, { disponibile: e.target.checked })} className="accent-indigo-600" />disponibile
+                    <input type="checkbox" checked={v.disponibile} onChange={e => cambiaVoce(i, { disponibile: e.target.checked })} className="accent-brand-600" />disponibile
                   </label>
                   <button onClick={() => spostaVoce(i, -1)} className="p-1 text-gray-400 hover:text-gray-700" title="Su"><ChevronUp className="w-4 h-4" /></button>
                   <button onClick={() => spostaVoce(i, 1)} className="p-1 text-gray-400 hover:text-gray-700" title="Giù"><ChevronDown className="w-4 h-4" /></button>
@@ -335,8 +346,33 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
               </div>
             ))}
             <button onClick={() => setVoci(x => [...x, { sezione: x[x.length - 1]?.sezione ?? '', ordine: x.length + 1, nome: '', descrizione: null, prezzo: null, etichette: [], disponibile: true }])}
-              className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"><Plus className="w-4 h-4" />Aggiungi voce</button>
+              className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"><Plus className="w-4 h-4" />Aggiungi voce</button>
           </section>
+        </div>
+      )}
+
+      {scheda === 'gestori' && (
+        <section className={`${riquadro} max-w-2xl`}>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Gestori</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Chi gestisce il locale entra in questo pannello con il suo account e vede solo «I miei locali».</p>
+          </div>
+          <Gestori localeId={id!} />
+        </section>
+      )}
+
+      {/* La barra del salvataggio: sempre in vista, dice se ci sono
+          modifiche da salvare. Prima "Salva" stava solo in cima e chi
+          lavorava sulla vetrina, in fondo, doveva risalire. */}
+      <div className="fixed bottom-0 left-0 right-0 lg:left-60 z-20 bg-white/95 dark:bg-gray-950/95 backdrop-blur border-t border-gray-200 dark:border-gray-800">
+        <div className="max-w-5xl px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+          <span className={`text-sm flex-1 ${sporco ? 'text-brand-700 dark:text-brand-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+            {sporco ? 'Modifiche non salvate' : nuovo ? 'Locale nuovo, non ancora salvato' : 'Tutto salvato'}
+          </span>
+          {sporco && !nuovo && <button onClick={annulla} className={bottone('quieto')}>Annulla modifiche</button>}
+          <button onClick={salva} disabled={salvo || (!sporco && !nuovo)} className={bottone()}>
+            <Save className="w-4 h-4" />{salvo ? 'Salvataggio…' : 'Salva'}
+          </button>
         </div>
       </div>
     </div>

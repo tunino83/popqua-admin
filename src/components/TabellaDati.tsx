@@ -15,7 +15,7 @@ import {
   type SortingState,
   type Table,
 } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react'
 
 /* Tabelle del pannello: ogni colonna si ordina toccando l'intestazione e si
  * filtra dalla riga sotto. Le colonne dicono come si cercano con `meta`:
@@ -101,7 +101,7 @@ export function useTabella<T>({ dati, colonne, perPagina, ordine, cercaGlobale }
 function Filtro<T>({ column, table }: { column: Column<T, unknown>; table: Table<T> }) {
   const tipo = column.columnDef.meta?.filtro ?? 'testo'
   const valore = (column.getFilterValue() as string) ?? ''
-  const cls = 'w-full min-w-[70px] px-2 py-1 text-xs font-normal normal-case tracking-normal border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500'
+  const cls = 'w-full min-w-[70px] px-2 py-1 text-xs font-normal normal-case tracking-normal border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500'
 
   /* I valori del menu vengono da tutte le righe, non da quelle gia'
      filtrate: altrimenti scelto un valore gli altri sparirebbero. */
@@ -142,9 +142,23 @@ export function TabellaDati<T>({ table, vuoto, onRiga, classeRiga, compatta, cla
   const py = compatta ? 'py-2' : 'py-3'
   const righe = table.getRowModel().rows
   const filtrabile = table.getAllLeafColumns().some(c => c.getCanFilter() && c.columnDef.meta?.filtro !== false)
+  /* I filtri per colonna si aprono a richiesta: sempre visibili erano una
+     riga di caselle sopra ogni tabella. Restano aperti se ce n'e' uno attivo. */
+  const attivi = table.getState().columnFilters.length
+  const [aperti, setAperti] = useState(false)
+  const mostraFiltri = filtrabile && (aperti || attivi > 0)
 
   return (
     <table className={`w-full text-sm ${className}`}>
+      {filtrabile && (
+        <caption className="caption-top text-right px-3 pt-2">
+          <button type="button" onClick={() => { if (mostraFiltri) table.resetColumnFilters(); setAperti(!mostraFiltri) }}
+            aria-expanded={mostraFiltri}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${mostraFiltri ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            <SlidersHorizontal className="w-3.5 h-3.5" />{mostraFiltri ? `Togli filtri${attivi ? ` (${attivi})` : ''}` : 'Filtra per colonna'}
+          </button>
+        </caption>
+      )}
       <thead className={compatta
         ? 'text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800'
         : 'bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'}>
@@ -161,7 +175,7 @@ export function TabellaDati<T>({ table, vuoto, onRiga, classeRiga, compatta, cla
                     <button type="button" onClick={h.column.getToggleSortingHandler()}
                       className={`inline-flex items-center gap-1 ${compatta ? '' : 'uppercase'} hover:text-gray-900 dark:hover:text-white transition-colors`}>
                       {titolo}
-                      <Freccia className={`w-3.5 h-3.5 ${ord ? 'text-indigo-500' : 'opacity-30'}`} />
+                      <Freccia className={`w-3.5 h-3.5 ${ord ? 'text-brand-500' : 'opacity-30'}`} />
                     </button>
                   ) : titolo}
                 </th>
@@ -169,7 +183,7 @@ export function TabellaDati<T>({ table, vuoto, onRiga, classeRiga, compatta, cla
             })}
           </tr>
         ))}
-        {filtrabile && table.getHeaderGroups().slice(-1).map(hg => (
+        {mostraFiltri && table.getHeaderGroups().slice(-1).map(hg => (
           <tr key={`${hg.id}-filtri`}>
             {hg.headers.map(h => (
               <th key={h.id} className="px-4 pb-2 pt-0 text-left font-normal">
@@ -194,5 +208,33 @@ export function TabellaDati<T>({ table, vuoto, onRiga, classeRiga, compatta, cla
         ))}
       </tbody>
     </table>
+  )
+}
+
+/* La stessa paginazione per tutte le tabelle: posizione, frecce e
+   righe per pagina. Prima Utenti e Messaggi la facevano ciascuno a modo suo. */
+export function Paginazione<T>({ table, scelte = [25, 50, 100] }: { table: Table<T>; scelte?: number[] }) {
+  const { pageIndex, pageSize } = table.getState().pagination
+  const pagine = Math.max(1, table.getPageCount())
+  const freccia = 'p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap text-sm text-gray-500 dark:text-gray-400">
+      <label className="flex items-center gap-2">
+        Righe
+        <select value={pageSize} onChange={e => table.setPageSize(Number(e.target.value))}
+          className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 text-sm">
+          {scelte.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+        <span className="tabular-nums">Pagina {pageIndex + 1} di {pagine}</span>
+        <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Pagina precedente" className={freccia}>
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Pagina successiva" className={freccia}>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   )
 }

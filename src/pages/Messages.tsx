@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Trash2, ChevronLeft, ChevronRight, List, Map as MapIcon, Image, Plus } from 'lucide-react'
+import { Trash2, List, Map as MapIcon, Image, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -8,10 +8,12 @@ import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { supabase } from '../lib/supabase'
 import { MessaggioRapido, type PuntoMappa } from '../components/MessaggioRapido'
 import { esc, safeUrl } from '../lib/escapeHtml'
-import { TabellaDati, useTabella } from '../components/TabellaDati'
+import { TabellaDati, useTabella, Paginazione } from '../components/TabellaDati'
 import { suClicSingolo } from '../lib/clicSingolo'
-import { eliminaMessaggio, confermaElimina } from '../lib/eliminaMessaggio'
+import { eliminaMessaggio, richiestaElimina } from '../lib/eliminaMessaggio'
 import { useToast } from '../components/Toast'
+import { useConferma } from '../components/ui'
+import { Intestazione, bottone } from '../components/ui'
 
 interface AdminMessage {
   id: string
@@ -97,6 +99,7 @@ function hexToDouble(hex: string): number {
 }
 
 export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId: string }) {
+  const conferma = useConferma()
   const { success: toastSuccess, error: toastError } = useToast()
   const navigate = useNavigate()
   const [data, setData] = useState<ParsedMessage[]>([])
@@ -202,8 +205,8 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     }
     const inner = avatarUrl
       ? `<img src="${safeUrl(avatarUrl)}" width="${s}" height="${s}" style="object-fit:cover;width:${s}px;height:${s}px;border-radius:50%;display:block"/>`
-      : `<div style="width:${s}px;height:${s}px;border-radius:50%;background:#4f46e5;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">${initial}</div>`
-    const html = `<div style="width:${s}px;height:${s}px;border-radius:50%;border:2.5px solid #4f46e5;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35)">${inner}</div>`
+      : `<div style="width:${s}px;height:${s}px;border-radius:50%;background:#C4503A;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">${initial}</div>`
+    const html = `<div style="width:${s}px;height:${s}px;border-radius:50%;border:2.5px solid #C4503A;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35)">${inner}</div>`
     return L.divIcon({ html, className: '', iconSize: [s, s], iconAnchor: [s / 2, s / 2], popupAnchor: [0, -s / 2] })
   }
 
@@ -216,13 +219,13 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       const msgId = encodeURIComponent(m.id)
       const popup = `
         <div style="min-width:180px;font-family:system-ui,sans-serif">
-          <div style="font-size:11px;font-weight:600;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${esc(typeLabel[t])} · ${esc(m.is_anonymous ? 'Anonimo' : m.username)}</div>
+          <div style="font-size:11px;font-weight:600;color:#C4503A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${esc(typeLabel[t])} · ${esc(m.is_anonymous ? 'Anonimo' : m.username)}</div>
           <div style="font-size:13px;font-weight:600;color:#111;line-height:1.3">${esc(m.title ?? m.text)}</div>
           ${m.title ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">${esc(m.text)}</div>` : ''}
           ${imgHtml}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
             <span style="font-size:11px;color:#9ca3af">${esc(new Date(m.created_at).toLocaleDateString('it-IT'))}</span>
-            <a href="/messages/${msgId}" style="font-size:11px;font-weight:600;color:#4f46e5;text-decoration:none" onclick="event.preventDefault();window.__navigateTo('/messages/${msgId}')">Apri dettaglio →</a>
+            <a href="/messages/${msgId}" style="font-size:11px;font-weight:600;color:#C4503A;text-decoration:none" onclick="event.preventDefault();window.__navigateTo('/messages/${msgId}')">Apri dettaglio →</a>
           </div>
         </div>`
       const avatarUrl = m.author_id && !m.is_anonymous ? (avatarMapRef.current.get(m.author_id) ?? null) : null
@@ -291,7 +294,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
     if (!puntoNuovo) return
     segnaposto.current = L.marker([puntoNuovo.lat, puntoNuovo.lon]).addTo(map)
     cerchio.current = L.circle([puntoNuovo.lat, puntoNuovo.lon], {
-      radius: raggioNuovo, color: '#4f46e5', weight: 2, fillColor: '#4f46e5', fillOpacity: 0.08, dashArray: '6 4',
+      radius: raggioNuovo, color: '#C4503A', weight: 2, fillColor: '#C4503A', fillOpacity: 0.08, dashArray: '6 4',
     }).addTo(map)
   }, [puntoNuovo, view, raggioNuovo])
 
@@ -309,7 +312,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       header: 'Foto',
       meta: { filtro: 'scelta' },
       cell: ({ row }) => row.original.image_url
-        ? <Image className="w-4 h-4 text-indigo-400" />
+        ? <Image className="w-4 h-4 text-brand-400" />
         : <span className="w-4 h-4 block" />,
     }),
     columnHelper.accessor('title', {
@@ -359,7 +362,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
             /* Prima toglieva la riga solo dallo schermo: ora cancella davvero
                (lib/eliminaMessaggio), dopo una conferma. */
             const m = row.original
-            if (!confermaElimina(m.title || m.text)) return
+            if (!(await conferma(richiestaElimina(m.title || m.text)))) return
             try {
               const tolti = await eliminaMessaggio(m.id, isAdmin, userId)
               if (tolti === 0) { toastError('Messaggio non eliminato: forse non e\' tuo o non esiste piu\'.'); return }
@@ -399,37 +402,34 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
 
   return (
     <div className="space-y-4">
+      <Intestazione titolo="Messaggi" sottotitolo={`${table.getFilteredRowModel().rows.length} messaggi`}
+        azioni={<button onClick={() => navigate('/messages/new')} className={bottone()}><Plus className="w-4 h-4" />Nuovo messaggio</button>} />
       {/* Filters + view toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
           {statusTabs.map(({ key, label }) => (
             <button key={key} onClick={() => setStatusFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === key ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === key ? 'bg-brand-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               {label}
             </button>
           ))}
           <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1" />
           {typeTabs.map(({ key, label }) => (
             <button key={key} onClick={() => setTypeFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${typeFilter === key ? 'bg-sky-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${typeFilter === key ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               {label}
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 dark:text-gray-400">{table.getFilteredRowModel().rows.length} messaggi</span>
-          <button onClick={() => navigate('/messages/new')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" /> Nuovo
-          </button>
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${view === 'list' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${view === 'list' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               <List className="w-4 h-4" /> Lista
             </button>
             <button onClick={() => setView('map')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-700 ${view === 'map' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-700 ${view === 'map' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               <MapIcon className="w-4 h-4" /> Mappa
             </button>
           </div>
@@ -439,7 +439,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
       {/* List view */}
       {view === 'list' && (
         <>
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-x-auto">
             {loading ? (
               <div className="p-12 text-center text-gray-400">Caricamento…</div>
             ) : (
@@ -448,19 +448,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
             )}
           </div>
 
-          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-            <span>Pagina {table.getState().pagination.pageIndex + 1} di {Math.max(1, table.getPageCount())}</span>
-            <div className="flex gap-2">
-              <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <Paginazione table={table} />
         </>
       )}
 
@@ -472,7 +460,7 @@ export default function Messages({ isAdmin, userId }: { isAdmin: boolean; userId
           </p>
 
           <div className="relative">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
               <div ref={mapRef} className="cursor-crosshair" style={{ height: 600 }} />
             </div>
 

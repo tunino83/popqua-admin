@@ -8,6 +8,7 @@ import {
 } from 'recharts'
 import { ArrowLeft, MessageSquare, CheckCircle, Clock, Pencil, Save, X, Tag, CalendarDays } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useConferma } from '../components/ui'
 
 interface Profile {
   id: string
@@ -29,15 +30,15 @@ interface Message {
 interface DayCount { date: string; messages: number }
 interface NameValue { name: string; value: number }
 
-const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e']
+const COLORS = ['#C4503A', '#2F7F8C', '#6F9A3B', '#D29A2E', '#6C5A8C']
 const TOOLTIP_STYLE = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13 }
 
 const ROLES = ['user', 'premium', 'admin']
 
 const roleBg: Record<string, string> = {
   admin: 'bg-rose-100 dark:bg-rose-900 text-rose-700 dark:text-rose-300',
-  premium: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300',
-  user: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300',
+  premium: 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300',
+  user: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
 }
 
 const typeBadge: Record<string, string> = {
@@ -65,6 +66,7 @@ function buildMonths(n: number): DayCount[] {
 }
 
 export default function UserDetail() {
+  const conferma = useConferma()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -191,7 +193,7 @@ export default function UserDetail() {
     const avviso = nuovo === 'admin'
       ? `Rendere ${profile.username} amministratore? Potrà vedere e modificare tutto, compresi utenti e ruoli.`
       : `Cambiare il ruolo di ${profile.username} in ${nuovo}?`
-    if (!confirm(avviso)) return
+    if (!(await conferma({ titolo: 'Cambiare ruolo?', testo: avviso, conferma: 'Cambia ruolo', pericolo: nuovo === 'admin' }))) return
     setCambioRuolo(true); setErroreRuolo(null)
     const { error } = await supabase.from('user_profiles').update({ role: nuovo }).eq('id', id)
     if (error) setErroreRuolo(error.code === '42501' ? 'Solo un amministratore può cambiare i ruoli.' : `Errore: ${error.message}`)
@@ -220,12 +222,12 @@ export default function UserDetail() {
       </button>
 
       {/* Profile card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
         <div className="flex items-start gap-5">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-2xl object-cover flex-shrink-0" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-3xl flex-shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-3xl flex-shrink-0">
               {profile.username?.[0]?.toUpperCase() ?? '?'}
             </div>
           )}
@@ -238,7 +240,7 @@ export default function UserDetail() {
                   <input
                     value={editUsername}
                     onChange={e => setEditUsername(e.target.value)}
-                    className="w-full max-w-xs px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full max-w-xs px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div>
@@ -246,14 +248,14 @@ export default function UserDetail() {
                   <select
                     value={editRole}
                     onChange={e => setEditRole(e.target.value)}
-                    className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 {saveError && <p className="text-xs text-red-500">{saveError}</p>}
                 <div className="flex items-center gap-2">
-                  <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-semibold rounded-lg transition">
+                  <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white text-xs font-semibold rounded-lg transition">
                     <Save className="w-3.5 h-3.5" /> {saving ? 'Salvo…' : 'Salva'}
                   </button>
                   <button onClick={() => { setEditing(false); setSaveError(null) }} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg transition">
@@ -264,8 +266,8 @@ export default function UserDetail() {
             ) : (
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">{profile.username}</h1>
-                  <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-indigo-600 transition">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.username}</h1>
+                  <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-brand-600 transition">
                     <Pencil className="w-4 h-4" />
                   </button>
                 </div>
@@ -309,7 +311,7 @@ export default function UserDetail() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         {kpiCards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-4 flex items-center gap-3">
+          <div key={label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-3">
             <div className={`${bg} p-2.5 rounded-xl flex-shrink-0`}>
               <Icon className={`w-5 h-5 ${color}`} />
             </div>
@@ -323,7 +325,7 @@ export default function UserDetail() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Attività ultimi 30 giorni</h2>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={days30} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -331,12 +333,12 @@ export default function UserDetail() {
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} interval={4} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
               <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Line type="monotone" dataKey="messages" name="Messaggi" stroke="#4f46e5" strokeWidth={2} dot={{ r: 2, fill: '#4f46e5' }} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="messages" name="Messaggi" stroke="#C4503A" strokeWidth={2} dot={{ r: 2, fill: '#C4503A' }} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Messaggi per tipo</h2>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
@@ -349,7 +351,7 @@ export default function UserDetail() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6 md:col-span-2">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 md:col-span-2">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Messaggi ultimi 6 mesi</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={months6} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -357,14 +359,14 @@ export default function UserDetail() {
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#6b7280' }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
               <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Bar dataKey="messages" name="Messaggi" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="messages" name="Messaggi" fill="#C4503A" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Recent messages */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Ultimi messaggi</h2>
         {messages.length === 0 ? (
           <p className="text-sm text-gray-400 py-4 text-center">Nessun messaggio attivo</p>

@@ -158,8 +158,8 @@ export function EditorSuMisura({ a, onChange }: { a: Aspetto; onChange: (a: Aspe
         </div>
       </div>
       <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-        <input type="checkbox" checked={a.scuro} onChange={e => set({ scuro: e.target.checked })} className="accent-indigo-600" /> Tema scuro
-        <input type="checkbox" checked={a.alone} onChange={e => set({ alone: e.target.checked })} className="accent-indigo-600 ml-4" /> Alone neon su titoli e insegne
+        <input type="checkbox" checked={a.scuro} onChange={e => set({ scuro: e.target.checked })} className="accent-brand-600" /> Tema scuro
+        <input type="checkbox" checked={a.alone} onChange={e => set({ alone: e.target.checked })} className="accent-brand-600 ml-4" /> Alone neon su titoli e insegne
       </label>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {COLORI.map(([k, n]) => (

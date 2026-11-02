@@ -8,6 +8,7 @@ import { esc } from '../lib/escapeHtml'
 import { createColumnHelper } from '@tanstack/react-table'
 import { TabellaDati, useTabella } from '../components/TabellaDati'
 import { suClicSingolo } from '../lib/clicSingolo'
+import { useConferma } from '../components/ui'
 
 /* Capsule: messaggi che si vedono da lontano e si aprono sul posto.
  *
@@ -151,6 +152,7 @@ const COLONNE = [
 ]
 
 export default function Capsule() {
+  const conferma = useConferma()
   const mapRef     = useRef<HTMLDivElement>(null)
   const mappa      = useRef<L.Map | null>(null)
   const livello    = useRef<L.LayerGroup | null>(null)
@@ -280,7 +282,7 @@ export default function Capsule() {
 
   async function elimina() {
     if (!bozza?.id) return
-    if (!window.confirm(`Eliminare "${bozza.titolo}"? Si perdono anche le aperture registrate.`)) return
+    if (!(await conferma({ titolo: `Eliminare «${bozza.titolo}»?`, testo: 'Si perdono anche le aperture registrate.', conferma: 'Elimina', pericolo: true }))) return
     const { error } = await supabase.rpc('admin_elimina_capsula', { p_id: bozza.id })
     if (error) { setErrore(error.message); return }
     setBozza(null); setEsito('Capsula eliminata.')
@@ -295,7 +297,7 @@ export default function Capsule() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Capsule</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Capsule</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Si vedono da lontano, si aprono sul posto. Clicca la mappa per piazzarne una, o un lucchetto per modificarlo.
           </p>
@@ -321,11 +323,11 @@ export default function Capsule() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         <div className="xl:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
             <div ref={mapRef} className="cursor-crosshair" style={{ height: '58vh', minHeight: 380 }} />
           </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-x-auto">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-x-auto">
             <TabellaDati table={tabella} compatta
               vuoto={caricando ? 'Caricamento…' : 'Nessuna capsula. Clicca sulla mappa per crearne una.'}
               onRiga={c => { setBozza(daCapsula(c)); setEsito(null); mappa.current?.setView([c.lat, c.lon], 15) }}
@@ -333,7 +335,7 @@ export default function Capsule() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
           {!bozza ? (
             <div className="text-sm text-gray-500 dark:text-gray-400 space-y-2">
               <p className="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200"><Lock className="w-4 h-4" /> Nessuna capsula selezionata</p>

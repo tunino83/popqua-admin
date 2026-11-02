@@ -1,3 +1,47 @@
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
+
+/* L'identita' di POPQua nel pannello: lo stesso corallo dei richiami
+   dell'app, grigi caldi da intonaco (di notte asfalto) e il carattere
+   dei titoli dell'app. `brand` sostituisce l'indaco di serie; i grigi
+   di Tailwind si ridefiniscono qui, cosi' tutte le pagine cambiano
+   insieme. Due soli arrotondamenti: 8 px (campi, pulsanti) e 12 px
+   (riquadri); 2xl vale come xl. */
+@theme {
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50:  #FCEEEA;
+  --color-brand-100: #F8D9D1;
+  --color-brand-200: #F0B4A6;
+  --color-brand-300: #E88D79;
+  --color-brand-400: #E2735C;
+  --color-brand-500: #DD5E45;
+  --color-brand-600: #C4503A;
+  --color-brand-700: #A3402D;
+  --color-brand-800: #803325;
+  --color-brand-900: #5E271D;
+  --color-brand-950: #3A1812;
+
+  --color-gray-50:  #F5F5F2;
+  --color-gray-100: #EBEBE7;
+  --color-gray-200: #DDDDD7;
+  --color-gray-300: #C5C5BD;
+  --color-gray-400: #9B9B92;
+  --color-gray-500: #74746C;
+  --color-gray-600: #58584F;
+  --color-gray-700: #3F3F39;
+  --color-gray-800: #2B2C2B;
+  --color-gray-900: #1F2021;
+  --color-gray-950: #161718;
+
+  --color-ink: #17150F;
+
+  --radius-2xl: 0.75rem;
+}
+
+@layer base {
+  h1, h2 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+  .tabular-nums, td { font-variant-numeric: tabular-nums; }
+}

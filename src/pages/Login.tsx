@@ -39,11 +39,11 @@ export default function Login({ onLogin, onGoogleLogin }: LoginProps) {
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
             <img src="/icona.png" alt="POPQua" className="w-16 h-16 rounded-2xl shadow-lg" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POPQua Admin</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Accesso riservato agli amministratori</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POPQua · Pannello</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Per lo staff di POPQua e i gestori dei locali</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm p-6 space-y-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 space-y-4">
           {/* Google button */}
           <button
             type="button"
@@ -81,7 +81,7 @@ export default function Login({ onLogin, onGoogleLogin }: LoginProps) {
                 onChange={e => setEmail(e.target.value)}
                 required
                 autoFocus
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
                 placeholder="admin@esempio.com"
               />
             </div>
@@ -93,7 +93,7 @@ export default function Login({ onLogin, onGoogleLogin }: LoginProps) {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
                 placeholder="••••••••"
               />
             </div>
@@ -107,7 +107,7 @@ export default function Login({ onLogin, onGoogleLogin }: LoginProps) {
             <button
               type="submit"
               disabled={loading || googleLoading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+              className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white rounded-lg text-sm font-semibold transition"
             >
               {loading ? 'Accesso in corso…' : 'Accedi'}
             </button>

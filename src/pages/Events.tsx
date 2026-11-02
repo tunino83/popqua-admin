@@ -6,6 +6,7 @@ import { esc } from '../lib/escapeHtml'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
+import { Intestazione, bottone } from '../components/ui'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   draft:     { label: 'Bozza',      cls: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300' },
@@ -144,7 +145,7 @@ export default function Events() {
           </div>
           <div style="font-size:11px;color:#6b7280;margin-bottom:2px">${esc(ev.category ?? '')} · ${esc(ev.location_text ?? '')}</div>
           <div style="font-size:11px;color:#6b7280;margin-bottom:6px">${esc(ev.start_at ? new Date(ev.start_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) : '')}</div>
-          <a onclick="window.__openEvent &amp;&amp; window.__openEvent('${encodeURIComponent(ev.id)}')" style="color:#6366f1;font-size:11px;cursor:pointer;font-weight:600">Apri dettaglio →</a>
+          <a onclick="window.__openEvent &amp;&amp; window.__openEvent('${encodeURIComponent(ev.id)}')" style="color:#C4503A;font-size:11px;cursor:pointer;font-weight:600">Apri dettaglio →</a>
         </div>`,
         { maxWidth: 240 }
       )
@@ -188,42 +189,33 @@ export default function Events() {
     <div className="flex flex-col gap-3 h-full">
 
       {/* ── Toolbar ────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {filtered.length} di {events.length} eventi
-        </p>
-        <button
-          onClick={() => navigate('/events/new')}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />Nuovo
-        </button>
-      </div>
+      <Intestazione titolo="Eventi" sottotitolo={`${filtered.length} di ${events.length} eventi`}
+        azioni={<button onClick={() => navigate('/events/new')} className={bottone()}><Plus className="w-4 h-4" />Nuovo evento</button>} />
 
       {/* ── Filtri ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-2 flex-shrink-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3 shadow-sm">
+      <div className="flex flex-col gap-2 flex-shrink-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-3">
 
         {/* Riga 1: ricerca + date + status + reset */}
         <div className="flex gap-2 items-center flex-wrap">
           <div className="relative w-44">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input type="text" placeholder="Cerca nome…" value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-indigo-400" />
+              className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-400">Dal</span>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-400">Al</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400" />
+              className="px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-brand-400" />
           </div>
           <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
           {(['all', 'published', 'draft', 'cancelled'] as const).map(f => (
             <button key={f} onClick={() => setStatusFilter(f)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${statusFilter === f ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${statusFilter === f ? 'bg-brand-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               {f === 'all' ? 'Tutti' : STATUS_BADGE[f].label}
             </button>
           ))}
@@ -239,7 +231,7 @@ export default function Events() {
           {allCategories.map(cat => (
             <button key={cat} onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
               title={cat}
-              className={`px-2 py-1 rounded-lg text-sm transition-colors ${categoryFilter === cat ? 'ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-950' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              className={`px-2 py-1 rounded-lg text-sm transition-colors ${categoryFilter === cat ? 'ring-2 ring-brand-500 bg-brand-50 dark:bg-brand-950' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               {CATEGORY_ICONS[cat] ?? '📌'}
             </button>
           ))}
@@ -250,7 +242,7 @@ export default function Events() {
       <div className="flex gap-3" style={{ height: 'calc(100vh - 260px)' }}>
 
         {/* Lista */}
-        <div className="w-[480px] flex-shrink-0 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm divide-y divide-gray-100 dark:divide-gray-800 h-full">
+        <div className="w-[480px] flex-shrink-0 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800 h-full">
           {loading ? (
             <div className="text-sm text-gray-400 py-8 text-center">Caricamento…</div>
           ) : filtered.length === 0 ? (
@@ -268,7 +260,7 @@ export default function Events() {
                 key={ev.id}
                 onClick={() => setSelectedId(ev.id === selectedId ? null : ev.id)}
                 onDoubleClick={() => navigate(`/events/${ev.id}`)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-l-2 border-indigo-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-2 border-transparent'}`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors ${isSelected ? 'bg-brand-50 dark:bg-brand-950/40 border-l-2 border-brand-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-2 border-transparent'}`}
               >
                 {/* Dot colore categoria */}
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: catColor, flexShrink: 0, border: '2px solid white', boxShadow: `0 0 0 1px ${catColor}` }} />
@@ -294,7 +286,7 @@ export default function Events() {
         </div>
 
         {/* Mappa */}
-        <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm relative">
+        <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 relative">
           <div ref={mapDivRef} style={{ width: '100%', height: '100%' }} />
 
           {/* Legenda */}
@@ -319,7 +311,7 @@ export default function Events() {
           </div>
 
           {/* Hint */}
-          <div className="absolute top-3 left-3 z-[1000] bg-white/90 dark:bg-gray-900/90 rounded-lg px-2.5 py-1.5 text-xs text-gray-500 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="absolute top-3 left-3 z-[1000] bg-white/90 dark:bg-gray-900/90 rounded-lg px-2.5 py-1.5 text-xs text-gray-500 border border-gray-200 dark:border-gray-700">
             Click → centra · Doppio click → dettaglio
           </div>
 
@@ -327,7 +319,7 @@ export default function Events() {
           {selectedId && (
             <button
               onClick={() => navigate(`/events/${selectedId}`)}
-              className="absolute bottom-3 right-3 z-[1000] px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-lg transition-colors"
+              className="absolute bottom-3 right-3 z-[1000] px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-lg transition-colors"
             >
               Apri dettaglio →
             </button>

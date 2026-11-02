@@ -7,7 +7,7 @@ import {
 import {
   Users, MessageSquare, CheckCircle, Clock, Maximize2, X,
   CalendarDays, CalendarCheck, FileEdit, XCircle, LayoutDashboard, MapPinned,
-  Eye, Smartphone, DoorOpen,
+  Eye, Smartphone, DoorOpen, PenLine,
 } from 'lucide-react'
 import UsersMap from './UsersMap'
 import L from 'leaflet'
@@ -16,6 +16,9 @@ import { supabase } from '../lib/supabase'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
 import { getAllEvents } from '../lib/events'
 import { esc } from '../lib/escapeHtml'
+import { Link } from 'react-router-dom'
+import { Intestazione, bottone } from '../components/ui'
+import { DaFare, Settimana, useRiepilogo } from '../components/DaFare'
 
 // ── helpers ──────────────────────────────────────────────────────────
 interface KPIs { totalUsers: number; totalMessages: number; activeMessages: number; expiredMessages: number }
@@ -62,8 +65,8 @@ const MSG_TYPE_LABELS: Record<typeof MSG_TYPES[number], string> = {
 }
 const ROLES = ['admin', 'premium', 'user'] as const
 
-const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e']
-const EVENT_COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#6366f1', '#0ea5e9', '#a855f7', '#f97316', '#14b8a6', '#ec4899', '#10b981', '#eab308', '#3b82f6']
+const COLORS = ['#C4503A', '#2F7F8C', '#6F9A3B', '#D29A2E', '#6C5A8C']
+const EVENT_COLORS = ['#C4503A', '#2F7F8C', '#6F9A3B', '#D29A2E', '#6C5A8C', '#E88D79', '#5FA8B3', '#A3BF6E', '#E8BE6A', '#9C8BB8', '#803325', '#1F5560']
 const TOOLTIP_STYLE = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13 }
 
 function ChartCard({ title, children, maximized, onMaximize, onClose }: {
@@ -83,7 +86,7 @@ function ChartCard({ title, children, maximized, onMaximize, onClose }: {
     </div>
   )
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
         <button onClick={onMaximize} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
@@ -96,17 +99,19 @@ function ChartCard({ title, children, maximized, onMaximize, onClose }: {
 }
 
 // ── KPI card ──────────────────────────────────────────────────────────
-function KpiCard({ label, value, icon: Icon, color, bg, loading }: {
-  label: string; value: number; icon: React.ElementType; color: string; bg: string; loading: boolean
+/* Tutte uguali, grigie: il colore resta per cio' che chiede attenzione
+   (Da fare). Prima ogni numero aveva il suo colore. */
+function KpiCard({ label, value, icon: Icon, loading }: {
+  label: string; value: number; icon: React.ElementType; color?: string; bg?: string; loading: boolean
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-5 flex items-center gap-4">
-      <div className={`${bg} p-3 rounded-xl flex-shrink-0`}>
-        <Icon className={`w-6 h-6 ${color}`} />
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 flex items-center gap-4">
+      <div className="bg-gray-100 dark:bg-gray-800 p-2.5 rounded-lg flex-shrink-0">
+        <Icon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
       </div>
       <div>
         <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white">{loading ? '—' : value.toLocaleString('it-IT')}</p>
+        <p className="text-2xl font-bold tabular-nums text-gray-900 dark:text-white">{loading ? '—' : value.toLocaleString('it-IT')}</p>
       </div>
     </div>
   )
@@ -156,12 +161,12 @@ function Pubblico() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard label="Aperture oggi" value={oggi?.aperture ?? 0} icon={DoorOpen} color="text-indigo-600" bg="bg-indigo-50 dark:bg-indigo-950" loading={!pronto} />
+        <KpiCard label="Aperture oggi" value={oggi?.aperture ?? 0} icon={DoorOpen} color="text-brand-600" bg="bg-brand-50 dark:bg-brand-950" loading={!pronto} />
         <KpiCard label="Dispositivi oggi" value={oggi?.dispositivi ?? 0} icon={Smartphone} color="text-sky-600" bg="bg-sky-50 dark:bg-sky-950" loading={!pronto} />
         <KpiCard label="Aperture 7 giorni" value={settimana} icon={DoorOpen} color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-950" loading={!pronto} />
         <KpiCard label={`Letture (${lette.toLocaleString('it-IT')} messaggi letti)`} value={letture} icon={Eye} color="text-amber-600" bg="bg-amber-50 dark:bg-amber-950" loading={!pronto} />
       </div>
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Aperture e dispositivi, ultimi 30 giorni</h2>
         <p className="text-xs text-gray-400 mb-4">Conteggi anonimi: nessun utente, nessuna posizione. Il conteggio parte dal 14/10.</p>
         <ResponsiveContainer width="100%" height={240}>
@@ -170,7 +175,7 @@ function Pubblico() {
             <XAxis dataKey="giorno" tick={{ fontSize: 10, fill: '#6b7280' }} interval={4} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
             <Tooltip contentStyle={TOOLTIP_STYLE} /><Legend iconType="circle" iconSize={10} />
-            <Line type="monotone" dataKey="aperture" name="Aperture" stroke="#4f46e5" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="aperture" name="Aperture" stroke="#C4503A" strokeWidth={2} dot={false} />
             <Line type="monotone" dataKey="dispositivi" name="Dispositivi" stroke="#0ea5e9" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -209,7 +214,7 @@ function OverviewMap(_: { isAdmin: boolean }) {
       const evs = await getAllEvents()
       evs.forEach(ev => {
         if (!ev.lat || !ev.lon) return
-        L.circleMarker([ev.lat, ev.lon], { radius: 7, color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.8, weight: 2 })
+        L.circleMarker([ev.lat, ev.lon], { radius: 7, color: '#C4503A', fillColor: '#C4503A', fillOpacity: 0.8, weight: 2 })
           .bindPopup(`<b>${esc(ev.title)}</b><br><small>${esc(ev.category ?? '')} · ${esc(ev.status)}</small>`)
           .addTo(mcgEvents)
       })
@@ -235,11 +240,11 @@ function OverviewMap(_: { isAdmin: boolean }) {
   }, [])
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Mappa globale</h2>
         <div className="flex gap-3 text-xs text-gray-500">
-          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-500" /> Eventi</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-500" /> Eventi</span>
           <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-sky-500" /> Messaggi</span>
           <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" /> Ev.msg</span>
           <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" /> Offerte</span>
@@ -266,6 +271,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
   const [evMonthData, setEvMonthData]   = useState<{ month: string; eventi: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [maximized, setMaximized] = useState<string | null>(null)
+  const riepilogo = useRiepilogo()
 
   useEffect(() => {
     if (!isAdmin && !userId) return
@@ -371,7 +377,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
   }, [isAdmin, userId])
 
   const msgKpiCards = [
-    ...(isAdmin ? [{ label: 'Utenti totali', value: kpis.totalUsers, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950' }] : []),
+    ...(isAdmin ? [{ label: 'Utenti totali', value: kpis.totalUsers, icon: Users, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950' }] : []),
     { label: 'Messaggi totali',  value: kpis.totalMessages,  icon: MessageSquare, color: 'text-sky-600',     bg: 'bg-sky-50 dark:bg-sky-950' },
     { label: 'Messaggi attivi',  value: kpis.activeMessages,  icon: CheckCircle,   color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950' },
     { label: 'Messaggi scaduti', value: kpis.expiredMessages, icon: Clock,         color: 'text-rose-600',    bg: 'bg-rose-50 dark:bg-rose-950' },
@@ -384,7 +390,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
   ]
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview',  label: 'Overview',  icon: LayoutDashboard },
+    { id: 'overview',  label: 'Panoramica',  icon: LayoutDashboard },
     { id: 'messages',  label: 'Messaggi',  icon: MessageSquare },
     { id: 'events',    label: 'Eventi',    icon: CalendarDays },
     /* Separata dalla mappa globale: quella mostra dove sono i CONTENUTI,
@@ -395,11 +401,15 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
 
   return (
     <div className="space-y-5">
+      <Intestazione titolo="Oggi" sottotitolo={new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+        azioni={<Link to="/messages/new" className={bottone()}><PenLine className="w-4 h-4" />Nuovo messaggio</Link>} />
+      {isAdmin && <DaFare r={riepilogo} />}
+      {isAdmin && <Settimana r={riepilogo} />}
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
         {TABS.filter(t => (t.id !== 'events' && t.id !== 'utenti') || isAdmin).map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === id ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === id ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
             <Icon className="w-4 h-4" />{label}
           </button>
         ))}
@@ -446,7 +456,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
             {msgKpiCards.map(c => <KpiCard key={c.label} {...c} loading={loading} />)}
           </div>
           <div className={`grid grid-cols-1 gap-6 ${isAdmin ? 'md:grid-cols-2' : ''}`}>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Per tipo</h2>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -458,7 +468,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
               </ResponsiveContainer>
             </div>
             {isAdmin && (
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Utenti per ruolo</h2>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
@@ -478,22 +488,22 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Line type="monotone" dataKey="messages" name="Messaggi" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3, fill: '#4f46e5' }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="messages" name="Messaggi" stroke="#C4503A" strokeWidth={2} dot={{ r: 3, fill: '#C4503A' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ChartCard>
             <ChartCard title="Messaggi ultimi 30 giorni" maximized={maximized === '30d'} onMaximize={() => setMaximized('30d')} onClose={() => setMaximized(null)}>
               <AreaChart data={days30} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="grad30" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#C4503A" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#C4503A" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6b7280' }} interval={4} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Area type="monotone" dataKey="messages" name="Messaggi" stroke="#4f46e5" strokeWidth={2} fill="url(#grad30)" />
+                <Area type="monotone" dataKey="messages" name="Messaggi" stroke="#C4503A" strokeWidth={2} fill="url(#grad30)" />
               </AreaChart>
             </ChartCard>
           </div>
@@ -508,7 +518,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Donut per stato */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Per stato</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
@@ -537,7 +547,7 @@ export default function Dashboard({ isAdmin, userId }: { isAdmin: boolean; userI
             </ChartCard>
           </div>
           {/* Bar chart categorie — full width con altezza proporzionale */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">Per categoria</h2>
               <button onClick={() => setMaximized(maximized === 'evcat' ? null : 'evcat')} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
