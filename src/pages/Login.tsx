@@ -37,7 +37,7 @@ export default function Login({ onLogin, onGoogleLogin }: LoginProps) {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
-            <img src="/icona.png" alt="POPQua" className="w-16 h-16 rounded-2xl shadow-lg" />
+            <img src="/icona-portata.png" alt="POPQua" className="w-16 h-16 rounded-2xl shadow-lg" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POPQua · Pannello</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Per lo staff di POPQua e i gestori dei locali</p>

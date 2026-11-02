@@ -88,7 +88,7 @@ export default function QrPopqua() {
       .then(setQr).catch(() => setQr(null))
   }, [link])
 
-  const icona = `${window.location.origin}/icona.png`
+  const icona = `${window.location.origin}/icona-portata.png`
   const dati = { titolo: titolo.trim() || 'POPQua', sotto: sotto.trim(), qr: qr ?? '', icona }
   const anteprima = useMemo(() => (qr ? foglio(formato, dati, false, false) : ''), [formato, titolo, sotto, qr])
 

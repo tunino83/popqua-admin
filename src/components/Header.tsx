@@ -12,7 +12,7 @@ export default function Header({ onApriMenu }: { onApriMenu?: () => void }) {
         className="p-2 -ml-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
         <Menu className="w-5 h-5" />
       </button>
-      <img src="/icona.png" alt="" className="w-7 h-7 rounded-lg" />
+      <img src="/icona-portata.png" alt="" className="w-7 h-7 rounded-lg" />
       <span className="font-display text-base font-bold text-gray-900 dark:text-white">POPQua</span>
     </header>
   )

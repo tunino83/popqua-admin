@@ -85,7 +85,7 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
       fixed lg:static inset-y-0 left-0 z-40 transition-transform duration-200
       ${aperta ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       <div className="px-5 h-16 flex items-center gap-2.5 flex-shrink-0">
-        <img src="/icona.png" alt="" className="w-8 h-8 rounded-lg" />
+        <img src="/icona-portata.png" alt="" className="w-8 h-8 rounded-lg" />
         <div className="leading-tight">
           <span className="block font-display text-lg font-bold text-gray-900 dark:text-white">POPQua</span>
           <span className="block text-[11px] text-gray-500 dark:text-gray-400">Pannello</span>
