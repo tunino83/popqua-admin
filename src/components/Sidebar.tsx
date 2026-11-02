@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, MessageSquare, Settings, LogOut, CalendarDays, Activity, Lock, Flag, Store, Utensils,
-  Moon, Sun, X,
+  Moon, Sun, X, QrCode,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -56,6 +56,7 @@ export default function Sidebar({ onSignOut, username, isAdmin, userId, aperta =
           ...(isAdmin ? [
             { to: '/events', label: 'Eventi', icon: CalendarDays },
             { to: '/capsule', label: 'Capsule', icon: Lock },
+            { to: '/qr', label: 'QR e biglietti', icon: QrCode },
           ] : []),
         ] },
         ...(isAdmin ? [{ nome: 'Moderazione', voci: [{ to: '/segnalazioni', label: 'Segnalazioni', icon: Flag, conta: segnalazioni }] }] : []),

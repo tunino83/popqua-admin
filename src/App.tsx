@@ -16,6 +16,7 @@ import Diagnostica from './pages/Diagnostica'
 import Capsule from './pages/Capsule'
 import Segnalazioni from './pages/Segnalazioni'
 import Locali from './pages/Locali'
+import QrPopqua from './pages/QrPopqua'
 import LocaleDetail from './pages/LocaleDetail'
 import MieiLocali from './pages/MieiLocali'
 import Login from './pages/Login'
@@ -90,6 +91,7 @@ export default function App() {
               {isAdmin && <Route path="/diagnostica" element={<Diagnostica />} />}
               {isAdmin && <Route path="/capsule" element={<Capsule />} />}
               {isAdmin && <Route path="/segnalazioni" element={<Segnalazioni />} />}
+              {isAdmin && <Route path="/qr" element={<QrPopqua />} />}
               {isAdmin && <Route path="/locali" element={<Locali />} />}
               {isAdmin && <Route path="/locali/:id" element={<LocaleDetail />} />}
               <Route path="/users/:id" element={<UserDetail />} />
