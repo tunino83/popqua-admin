@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Save, Trash2, Plus, X } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { OSM_TILES, OSM_OPTIONS } from '../lib/mapTiles'
@@ -13,9 +13,10 @@ import { EditorSuMisura, AnteprimaSuMisura, PARTENZE } from '../components/Edito
 import { StilePosto } from '../components/StilePosto'
 import { suClicSingolo } from '../lib/clicSingolo'
 import { CaricaFile, CartelloQR, Gestori, Statistiche } from '../components/PartiLocale'
+import { EditorVoci, RegoleBacheca, TavoliLocale, SchermoTv, RichiesteLocale, useRichieste } from '../components/LocaleExtra'
 import { useConferma, cls, bottone, Intestazione, Schede } from '../components/ui'
 
-type Scheda = 'riepilogo' | 'info' | 'aspetto' | 'vetrina' | 'gestori'
+type Scheda = 'riepilogo' | 'richieste' | 'menu' | 'vetrina' | 'regole' | 'tavoli' | 'tv' | 'info' | 'aspetto' | 'gestori'
 
 const VUOTO: Partial<Locale> = {
   nome: '', dove: '', skin: 'locali', tipo: null, macro: false, raggio_m: 150, attivo: false, tema: {}, orari: [], dal: null, al: null,
@@ -51,6 +52,7 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
      modifiche da salvare. */
   const [base, setBase] = useState('')
   const [scheda, setScheda] = useState<Scheda>(nuovo ? 'info' : 'riepilogo')
+  const richieste = useRichieste(nuovo ? null : id!)
   const mappaRef = useRef<HTMLDivElement>(null)
   const mappa = useRef<L.Map | null>(null)
   const segno = useRef<L.Marker | null>(null)
@@ -80,10 +82,16 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
   /* Le schede: prima undici riquadri in fila su due colonne. Il gestore
      vede per prima cosa i numeri e il QR. */
   const schede: { id: Scheda; nome: string; conta?: number }[] = [
-    ...(!nuovo ? [{ id: 'riepilogo' as const, nome: gestore ? 'Riepilogo' : 'QR e statistiche' }] : []),
+    ...(!nuovo ? [
+      { id: 'riepilogo' as const, nome: gestore ? 'Riepilogo' : 'QR e statistiche' },
+      { id: 'richieste' as const, nome: 'Richieste', conta: richieste.nuove || undefined },
+    ] : []),
+    { id: 'menu', nome: 'Menu', conta: voci.filter(v => v.area === 'menu').length },
+    { id: 'vetrina', nome: 'Vetrina', conta: voci.filter(v => v.area === 'vetrina').length },
+    { id: 'regole', nome: 'Regole' },
+    ...(!nuovo ? [{ id: 'tavoli' as const, nome: 'Tavoli' }, { id: 'tv' as const, nome: 'TV' }] : []),
     { id: 'info', nome: gestore ? 'Orari' : 'Informazioni' },
     { id: 'aspetto', nome: 'Aspetto' },
-    { id: 'vetrina', nome: 'Vetrina', conta: voci.length },
     ...(!nuovo && !gestore ? [{ id: 'gestori' as const, nome: 'Gestori' }] : []),
   ]
 
@@ -118,14 +126,6 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
     const f = orari[i]
     cambiaFascia(i, { giorni: f.giorni.includes(g) ? f.giorni.filter(x => x !== g) : [...f.giorni, g].sort() })
   }
-
-  // ── Vetrina ──
-  const cambiaVoce = (i: number, p: Partial<VoceVetrina>) => setVoci(v => v.map((x, j) => (j === i ? { ...x, ...p } : x)))
-  const spostaVoce = (i: number, d: number) => setVoci(v => {
-    const j = i + d
-    if (j < 0 || j >= v.length) return v
-    const c = [...v]; [c[i], c[j]] = [c[j], c[i]]; return c
-  })
 
   async function salva() {
     if (!l.nome?.trim()) { toastError('Il nome è obbligatorio'); return }
@@ -317,39 +317,35 @@ export default function LocaleDetail({ gestore = false }: { gestore?: boolean })
         </div>
       )}
 
-      {scheda === 'vetrina' && (
-        <div className="max-w-3xl">
-          {/* Vetrina */}
-          <section className={riquadro}>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Vetrina (menù, corsi, orari…)</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Le sezioni diventano le schede, le etichette i filtri. Si salva con il pulsante Salva in basso.</p>
-            </div>
-            {voci.map((v, i) => (
-              <div key={v.id ?? `n${i}`} className={`p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-2 ${v.disponibile ? '' : 'opacity-60'}`}>
-                <div className="flex gap-2">
-                  <input className={`${campo} w-1/3`} placeholder="Sezione" value={v.sezione} onChange={e => cambiaVoce(i, { sezione: e.target.value })} />
-                  <input className={campo} placeholder="Nome" value={v.nome} onChange={e => cambiaVoce(i, { nome: e.target.value })} />
-                  <input className={`${campo} w-24`} type="number" step="0.5" placeholder="€" value={v.prezzo ?? ''} onChange={e => cambiaVoce(i, { prezzo: e.target.value === '' ? null : Number(e.target.value) })} />
-                </div>
-                <input className={campo} placeholder="Descrizione" value={v.descrizione ?? ''} onChange={e => cambiaVoce(i, { descrizione: e.target.value })} />
-                <div className="flex items-center gap-2">
-                  <input className={campo} placeholder="Etichette separate da virgola (vegano, della casa…)" value={v.etichette.join(', ')}
-                    onChange={e => cambiaVoce(i, { etichette: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} />
-                  <label className="flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
-                    <input type="checkbox" checked={v.disponibile} onChange={e => cambiaVoce(i, { disponibile: e.target.checked })} className="accent-brand-600" />disponibile
-                  </label>
-                  <button onClick={() => spostaVoce(i, -1)} className="p-1 text-gray-400 hover:text-gray-700" title="Su"><ChevronUp className="w-4 h-4" /></button>
-                  <button onClick={() => spostaVoce(i, 1)} className="p-1 text-gray-400 hover:text-gray-700" title="Giù"><ChevronDown className="w-4 h-4" /></button>
-                  <button onClick={() => setVoci(x => x.filter((_, j) => j !== i))} className="p-1 text-gray-400 hover:text-rose-500" title="Togli"><X className="w-4 h-4" /></button>
-                </div>
-              </div>
-            ))}
-            <button onClick={() => setVoci(x => [...x, { sezione: x[x.length - 1]?.sezione ?? '', ordine: x.length + 1, nome: '', descrizione: null, prezzo: null, etichette: [], disponibile: true }])}
-              className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"><Plus className="w-4 h-4" />Aggiungi voce</button>
-          </section>
+      {(scheda === 'menu' || scheda === 'vetrina') && (
+        <div className="max-w-3xl space-y-3">
+          <p className="text-sm text-gray-500 dark:text-gray-400">{scheda === 'menu'
+            ? 'Quello che si ordina: piatti, bevande, prezzi. «Esaurito» e «Oggi» si toccano al volo durante il servizio; poi Salva in basso.'
+            : 'Come si presenta il locale: serate, servizi, orari speciali, chi siete. Nell’app è una scheda accanto al menu.'}</p>
+          <EditorVoci area={scheda} voci={voci} setVoci={setVoci} localeId={nuovo ? null : id!} />
         </div>
       )}
+
+      {scheda === 'regole' && (
+        <section className={`${riquadro} max-w-2xl`}>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Regole della bacheca</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Valgono per i messaggi scritti con lo stile del locale acceso. Le controlla anche il server: un messaggio fuori regola non viene pubblicato.</p>
+          </div>
+          <RegoleBacheca regole={tema.regole} onRegole={r => aggiornaTema({ regole: r })} />
+        </section>
+      )}
+
+      {scheda === 'tavoli' && !nuovo && (
+        <section className={`${riquadro} max-w-2xl`}>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Tavoli</h2>
+          <TavoliLocale locale={{ id: id!, nome: l.nome ?? '', tema }} />
+        </section>
+      )}
+
+      {scheda === 'tv' && !nuovo && <SchermoTv localeId={id!} />}
+
+      {scheda === 'richieste' && !nuovo && <RichiesteLocale richieste={richieste} />}
 
       {scheda === 'gestori' && (
         <section className={`${riquadro} max-w-2xl`}>

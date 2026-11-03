@@ -81,6 +81,19 @@ export interface TemaLocale {
   logo_url?: string
   /** Il carattere dei titoli della skin Su misura (locali/<id>/font-....woff2). */
   font_url?: string
+  /** Le regole della bacheca del locale (trigger regole_locale sul server). */
+  regole?: RegoleLocale
+}
+
+export interface RegoleLocale {
+  anonimi?: boolean
+  foto?: boolean
+  /** Minuti. */
+  durata_max?: number | null
+  solo_tavoli?: boolean
+  limite_ora?: number | null
+  parole?: string[]
+  firma_tavolo?: 'no' | 'tavolo' | 'tavolo_nome'
 }
 
 export interface Locale {
@@ -113,7 +126,19 @@ export interface VoceVetrina {
   prezzo: number | null
   etichette: string[]
   disponibile: boolean
+  /** Menu (piatti, drink) o vetrina (il locale, le serate). */
+  area: 'menu' | 'vetrina'
+  allergeni: string[]
+  foto_url: string | null
+  /** Piatto del giorno fino a quest'ora. */
+  evidenza_fino: string | null
 }
+
+/* I 14 allergeni del regolamento UE 1169/2011. */
+export const ALLERGENI = [
+  'glutine', 'crostacei', 'uova', 'pesce', 'arachidi', 'soia', 'latte', 'frutta a guscio',
+  'sedano', 'senape', 'sesamo', 'solfiti', 'lupini', 'molluschi',
+]
 
 export async function elencoLocali(): Promise<Locale[]> {
   const { data, error } = await supabase.from('locali_admin').select('*').order('nome')
@@ -156,7 +181,10 @@ export async function eliminaLocale(id: string) {
 export async function vociVetrina(localeId: string): Promise<VoceVetrina[]> {
   const { data, error } = await supabase.from('vetrina_voci').select('*').eq('locale_id', localeId).order('ordine')
   if (error) throw error
-  return (data ?? []).map(v => ({ ...v, prezzo: v.prezzo == null ? null : Number(v.prezzo) }))
+  return (data ?? []).map(v => ({
+    ...v, prezzo: v.prezzo == null ? null : Number(v.prezzo),
+    area: v.area === 'menu' ? 'menu' : 'vetrina', allergeni: v.allergeni ?? [], foto_url: v.foto_url ?? null, evidenza_fino: v.evidenza_fino ?? null,
+  }))
 }
 
 /* La vetrina si salva intera: si cancellano le voci tolte e si
@@ -171,6 +199,7 @@ export async function salvaVetrina(localeId: string, voci: VoceVetrina[]) {
     ...(v.id ? { id: v.id } : {}),
     locale_id: localeId, sezione: v.sezione.trim() || 'Altro', ordine: i + 1, nome: v.nome.trim(),
     descrizione: v.descrizione?.trim() || null, prezzo: v.prezzo, etichette: v.etichette, disponibile: v.disponibile,
+    area: v.area, allergeni: v.allergeni, foto_url: v.foto_url, evidenza_fino: v.evidenza_fino,
   })).filter(r => r.nome)
   if (!righe.length) return
   const { error: e2 } = await supabase.from('vetrina_voci').upsert(righe)
@@ -190,7 +219,7 @@ export function descriviDisponibilita(l: Pick<Locale, 'dal' | 'al' | 'orari'>): 
 }
 
 /* ── File del locale: bucket pubblico `locali`, cartella = id ── */
-export async function caricaFileLocale(localeId: string, tipo: 'logo' | 'font', file: File): Promise<string> {
+export async function caricaFileLocale(localeId: string, tipo: 'logo' | 'font' | 'piatto', file: File): Promise<string> {
   const est = tipo === 'font' ? 'woff2' : ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' } as Record<string, string>)[file.type]
   if (!est) throw new Error('Formato non accettato: PNG, JPG o WebP')
   if (tipo === 'font' && !file.name.toLowerCase().endsWith('.woff2')) throw new Error('Il carattere deve essere un file .woff2')
@@ -207,7 +236,7 @@ export async function salvaComeGestore(l: Partial<Locale>) {
   const t = l.tema ?? {}
   const tema = {
     saluto: t.saluto ?? null, motto: t.motto ?? null, testi: t.testi ?? null, frasi: t.frasi ?? null,
-    emoji: t.emoji ?? null, logo_url: t.logo_url ?? null,
+    emoji: t.emoji ?? null, logo_url: t.logo_url ?? null, regole: t.regole ?? null,
   }
   const { error } = await supabase.rpc('gestore_aggiorna_locale', { p_id: l.id, p_tema: tema, p_orari: l.orari ?? [], p_cambia_orari: true })
   if (error) throw error
