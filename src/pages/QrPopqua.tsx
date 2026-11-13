@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Printer, Download } from 'lucide-react'
+import { Printer, Download, Plus, X } from 'lucide-react'
 import QRCode from 'qrcode'
 import { Intestazione, Sezione, cls, bottone } from '../components/ui'
 
@@ -63,9 +63,15 @@ function pezzo(f: Formato, o: { titolo: string; sotto: string; qr: string; icona
     <img class="q" src="${o.qr}" alt=""><div class="i">Inquadra con la fotocamera</div><div class="sito">popqua.it</div></div>`
 }
 
-export function foglio(f: Formato, o: Parameters<typeof pezzo>[1], tutti: boolean, stampa: boolean) {
+type Testo = { titolo: string; sotto: string }
+
+/* Fino a quattro messaggi diversi sullo stesso foglio: i posti si
+   dividono a gruppi (10 biglietti con 3 messaggi: 4, 3, 3). */
+export function foglio(f: Formato, o: Omit<Parameters<typeof pezzo>[1], 'titolo' | 'sotto'> & { testi: Testo[] }, tutti: boolean, stampa: boolean) {
   const n = f === 'biglietto' ? 10 : 4
-  const corpo = tutti ? `<div class="${f === 'biglietto' ? 'fb' : 'fc'}">${pezzo(f, o).repeat(n)}</div>` : pezzo(f, o)
+  const k = Math.max(1, Math.min(4, o.testi.length))
+  const di = (i: number) => ({ ...o, ...o.testi[Math.floor((i * k) / n)] })
+  const corpo = tutti ? `<div class="${f === 'biglietto' ? 'fb' : 'fc'}">${Array.from({ length: n }, (_, i) => pezzo(f, di(i))).join('')}</div>` : pezzo(f, di(0))
   const anteprima = tutti ? '' : `body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#EBEBE7}
     .b{width:85mm;height:55mm;border-style:solid}.c{width:105mm;height:148mm;border-style:solid}`
   return `<!doctype html><html><head><meta charset="utf-8"><title>QR POPQua</title>
@@ -75,9 +81,8 @@ export function foglio(f: Formato, o: Parameters<typeof pezzo>[1], tutti: boolea
 }
 
 export default function QrPopqua() {
-  const [scelta, setScelta] = useState(0)
-  const [titolo, setTitolo] = useState(FRASI[0].titolo)
-  const [sotto, setSotto] = useState(FRASI[0].sotto)
+  const [testi, setTesti] = useState<Testo[]>([{ ...FRASI[0] }])
+  const [attivo, setAttivo] = useState(0)
   const [formato, setFormato] = useState<Formato>('biglietto')
   const [link, setLink] = useState('https://popqua.it')
   const [qr, setQr] = useState<string | null>(null)
@@ -89,17 +94,16 @@ export default function QrPopqua() {
   }, [link])
 
   const icona = `${window.location.origin}/icona-portata.png`
-  const dati = { titolo: titolo.trim() || 'POPQua', sotto: sotto.trim(), qr: qr ?? '', icona }
-  const anteprima = useMemo(() => (qr ? foglio(formato, dati, false, false) : ''), [formato, titolo, sotto, qr])
+  const pulite = testi.map(t => ({ titolo: t.titolo.trim() || 'POPQua', sotto: t.sotto.trim() }))
+  const corrente = testi[attivo] ?? testi[0]
+  const cambia = (p: Partial<Testo>) => setTesti(x => x.map((t, i) => (i === attivo ? { ...t, ...p } : t)))
+  const anteprima = useMemo(() => (qr ? foglio(formato, { qr, icona, testi: [pulite[attivo] ?? pulite[0]] }, false, false) : ''), [formato, testi, attivo, qr])
 
-  function scegli(i: number) {
-    setScelta(i); setTitolo(FRASI[i].titolo); setSotto(FRASI[i].sotto)
-  }
   function stampa() {
     if (!qr) return
     const w = window.open('', '_blank')
     if (!w) return
-    w.document.write(foglio(formato, dati, true, true))
+    w.document.write(foglio(formato, { qr, icona, testi: pulite }, true, true))
     w.document.close()
   }
 
@@ -109,25 +113,40 @@ export default function QrPopqua() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         <div className="space-y-5">
-          <Sezione titolo="Frase" nota="Scegline una o scrivila tu.">
-            <div className="grid gap-2">
-              {FRASI.map((f, i) => (
-                <button key={i} type="button" onClick={() => scegli(i)} aria-pressed={scelta === i}
-                  className={`text-left px-3 py-2 rounded-lg border transition-colors ${scelta === i
-                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-950'
-                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                  <span className="block text-sm font-semibold text-gray-900 dark:text-white">{f.titolo}</span>
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">{f.sotto}</span>
-                </button>
+          <Sezione titolo="Messaggi" nota="Fino a quattro messaggi diversi sullo stesso foglio: i biglietti si dividono tra loro.">
+            <div className="flex gap-2 flex-wrap">
+              {testi.map((t, i) => (
+                <span key={i} className={`inline-flex items-center rounded-lg border ${i === attivo ? 'border-brand-500 bg-brand-50 dark:bg-brand-950' : 'border-gray-200 dark:border-gray-700'}`}>
+                  <button type="button" onClick={() => setAttivo(i)} aria-pressed={i === attivo} className="px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-100 max-w-[12rem] truncate">{i + 1}. {t.titolo || 'Senza testo'}</button>
+                  {testi.length > 1 && <button type="button" aria-label={`Togli il messaggio ${i + 1}`} onClick={() => { setTesti(x => x.filter((_, j) => j !== i)); setAttivo(0) }} className="pr-2 text-gray-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>}
+                </span>
               ))}
+              {testi.length < 4 && <button type="button" onClick={() => { setTesti(x => [...x, { ...FRASI[x.length % FRASI.length] }]); setAttivo(testi.length) }} className={bottone('secondario', true)}><Plus className="w-3.5 h-3.5" />Aggiungi messaggio</button>}
+            </div>
+          </Sezione>
+
+          <Sezione titolo={`Frase del messaggio ${attivo + 1}`} nota="Scegline una o scrivila tu.">
+            <div className="grid gap-2">
+              {FRASI.map((f, i) => {
+                const scelta = corrente.titolo === f.titolo && corrente.sotto === f.sotto
+                return (
+                  <button key={i} type="button" onClick={() => cambia({ ...f })} aria-pressed={scelta}
+                    className={`text-left px-3 py-2 rounded-lg border transition-colors ${scelta
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-950'
+                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                    <span className="block text-sm font-semibold text-gray-900 dark:text-white">{f.titolo}</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">{f.sotto}</span>
+                  </button>
+                )
+              })}
             </div>
             <div>
               <label className={cls.etichetta} htmlFor="qr-titolo">Frase principale</label>
-              <input id="qr-titolo" className={cls.campo} value={titolo} maxLength={60} onChange={e => { setTitolo(e.target.value); setScelta(-1) }} />
+              <input id="qr-titolo" className={cls.campo} value={corrente.titolo} maxLength={60} onChange={e => cambia({ titolo: e.target.value })} />
             </div>
             <div>
               <label className={cls.etichetta} htmlFor="qr-sotto">Riga sotto</label>
-              <input id="qr-sotto" className={cls.campo} value={sotto} maxLength={70} onChange={e => { setSotto(e.target.value); setScelta(-1) }} />
+              <input id="qr-sotto" className={cls.campo} value={corrente.sotto} maxLength={70} onChange={e => cambia({ sotto: e.target.value })} />
             </div>
           </Sezione>
 
